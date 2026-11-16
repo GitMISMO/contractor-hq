@@ -6,6 +6,9 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-16
 
+- Service Orders is one page: Revise an Order, End a Service Order and the order half of Executed Documents are gone. Every order, this year and past years, with search (title, company, facilitator, kind), filters (company, fiscal year opening on this year, status), grouped by company with a count and the total; open an order to revise it (not executed), end it (executed) or read it (past). Executed Documents is now Agreements, with earlier agreements underneath [20261116c]
+- Past years from Smartsheet (everything before FY 2027): each company's own records and signed copies, read only, under My Service Orders › Past Years and My Agreements; email approvals and the former companies are MISMO only, with their place on the Q Drive [20261116c]
+- New Service Order: no doubled words where a title's pieces meet ("Architecture Workgroup" + "Workgroup Facilitation" no longer gives "Workgroup Workgroup") [20261116c]
 - New Service Order: Delivery and Payment Schedules can be marked Not applicable to this order; neither prints on the order or shows on the review page, and the order shows its rate, hours and maximum fee instead [20261116b]
 - My Hours: an order's "Discard" button is now "Close Without Saving" (it only ever closed the row), and a new Clear This Row button empties a row logged by mistake; Help says how to clear a row logged in the wrong week [20261116a]
 

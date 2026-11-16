@@ -20,10 +20,10 @@ signing, hours, invoices, expenses and the Master Services Agreement (MSA) exten
 
 | Who | What they see (their Help page) |
 | --- | --- |
-| **Jonna** (admin; Vanessa can be too) | Everything, across every company: Needs You, Send Orders, Time Submitted, Invoices, Contractor Expenses, Hours Remaining, New Service Order, Revise an Order, End a Service Order, Executed Documents, Company Details, View As, the Status Board |
+| **Jonna** (admin; Vanessa can be too) | Everything, across every company: Needs You, Send Orders, Time Submitted, Invoices, Contractor Expenses, Hours Remaining, New Service Order, Service Orders (every order and past year: revise, end or read), Agreements, Company Details, View As, the Status Board |
 | **The VP** (Jonathan Kearns) | Awaiting Your Decision: approves (which sends the order to the company) or holds each order; Already Decided |
 | **The President** (Brian Vieaux) | Awaiting Your Approval: approves accepted orders, singly or by company, or holds one with a reason; Already Approved |
-| **A contracting company's signer or time manager** (one company key) | Its own company only: To Review (accept or ask a question), My Service Orders, the company's month and weeks of hours, My Invoices, My Agreements |
+| **A contracting company's signer or time manager** (one company key) | Its own company only: To Review (accept or ask a question), My Service Orders (This Year and Past Years), the company's month and weeks of hours, My Invoices, My Agreements |
 | **A contractor** (hours-only key) | Only their own hours and expenses: My Hours, My Submitted Time, When I Am Away, My Expenses. **Never money** (Decision 26): no rate, no maximum fee, no totals, not even the order document, because the rate is written on it. Their rates never even reach their browser: an hours-only key can read only `orders-public/` |
 | **A staff member who asked for a new order** | Only `review.html`, from the email: fill in [bracketed] gaps, change details, approve or send changes back |
 
@@ -76,6 +76,8 @@ figures, a token or a password here. The checks look for keys and tokens on ever
 | `hours/<person>-fy<year>.json` | A person's weeks of hours and their expenses; `hours/receipts/` holds receipt files | The person, their time manager, and Team HQ's expense router |
 | `invoices/<slug>.json`, `invoices/files/<slug>-<id>.pdf` | Invoices and expense invoices with their PDFs | The company's signer; Jonna's decisions |
 | `agreements/<slug>.json`, `agreements/<slug>/<msa>-fy2027.pdf` | Executed MSA extensions from DocuSign | Jonna |
+| `agreements/past/<slug>.json`, `agreements/past/files/FY<year>/*` | Past years brought over from Smartsheet (before FY 2027): the company's own records and signed copies, read only. No email approvals here | Loaded once by Jonna (16 Nov 2026) |
+| Team HQ data `sopast` (MISMO only) | Index of the Smartsheet email approvals and the 13 former companies' records, with where each file is on the Q Drive (Service Orders Archive › Company › FY) | Loaded once by Jonna |
 
 - **In Team HQ's data** (`team-hq-data`, relay key `team-hq`, records reached with `readData`/`updateData`):
   `soreviews` (staff reviews of new orders), `sotemplates` (saved New Service Order templates),

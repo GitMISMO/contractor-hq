@@ -5206,6 +5206,14 @@ function reviewsTable(list, C) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
     return m ? m[2] + '/' + m[3] + '/' + m[1].slice(2) : (s || '');
   }
+  /* Smartsheet kept names surname first ("Bittenbender, Erin"); the page says
+     them the way people do. A name with more than one comma is left alone. */
+  function nameFirst(v) {
+    return String(v || '').split(/\s*;\s*/).map(function (n) {
+      var m = /^([^,]+),\s*([^,]+)$/.exec(n.trim());
+      return m ? m[2] + ' ' + m[1] : n.trim();
+    }).join(', ');
+  }
   function pastRuns(r) {
     if (!r.startDate && !r.endDate) return '';
     return isoMDY(r.startDate) + ' to ' + isoMDY(r.earlyEndDate || r.endDate) +
@@ -5221,7 +5229,7 @@ function reviewsTable(list, C) {
   }
   /* The searchable text of a row: title, company, facilitator and kind. */
   function pastQ(r) {
-    return [r.title, r.company, r.facilitator, r.kind, 'FY ' + r.fy].join(' ').toLowerCase();
+    return [r.title, r.company, nameFirst(r.facilitator), r.facilitator, r.kind, 'FY ' + r.fy].join(' ').toLowerCase();
   }
   function docButtons(slug, d) {
     return '<button class="gobtn ghost vwfile" type="button" data-slug="' + esc(slug) +
@@ -5282,7 +5290,7 @@ function reviewsTable(list, C) {
       (r.estimatedHours != null ? fld('Estimated Hours', r.estimatedHours, 1) : '') +
       (r.maximumFee != null ? fld(paid ? 'Fixed Fee' : 'Maximum Fee', money(r.maximumFee), 1) : '') +
       (r.feeType ? fld('Fee Type', r.feeType) : '') +
-      (r.facilitator ? fld('Facilitator', r.facilitator) : '') +
+      (r.facilitator ? fld('Facilitator', nameFirst(r.facilitator)) : '') +
       (r.executedVia ? fld('Executed Through', r.executedVia) : '') +
       '</div>' + sig +
       ((r.description || (r.services || []).length || (r.deliverables || []).length)
@@ -5304,7 +5312,7 @@ function reviewsTable(list, C) {
     return '<div class="sorow" data-co="' + esc(coName || r.company || '') + '" data-fy="' + esc(r.fy || '') +
       '" data-st="past" data-fee="' + esc(r.maximumFee == null ? '' : r.maximumFee) +
       '" data-q="' + esc(pastQ(r)) + '">' +
-      panelRow(key, r.title || '(untitled)', [r.facilitator, r.kind, r.fy ? 'FY ' + r.fy : '', pastRuns(r)].filter(Boolean).join(' · '),
+      panelRow(key, r.title || '(untitled)', [nameFirst(r.facilitator), r.kind, r.fy ? 'FY ' + r.fy : '', pastRuns(r)].filter(Boolean).join(' · '),
         pastFee(r), pastBody(r, slug, extra, admin), pastChip(r)) + '</div>';
   }
   /* A loose document that came over without a record of its own. */

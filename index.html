@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261116a">
+<meta name="so-version" content="20261116c">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -172,6 +172,7 @@ h1,h2,h3,h4{letter-spacing:-.012em;margin:0}
 .revgrid textarea:hover{border-color:var(--border-strong)}
 .revgrid textarea:focus{outline:2px solid var(--sky);outline-offset:-1px;background:var(--surface-2)}
 .f{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f.no-schedf[hidden]{display:none}
 .f label{font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
  color:var(--ink-3);font-weight:600}
 .f .v{font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
@@ -809,6 +810,28 @@ body.railmini .panel.wide{width:min(1320px, calc(100vw - var(--rail-mini,62px) -
 .hqrow .d{font-size:12.5px;color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
 .hqrow .arr{color:var(--ink-3);font-size:16px;line-height:1}
 
+
+/* ── Service Orders: one page, search and filters (16 Nov 2026) ── */
+.sofilters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.sofilters .so-q{flex:1 1 260px;min-width:0}
+.sofilters select{flex:0 1 auto}
+.sofilters input,.sofilters select{font:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--btn-r,4px);background:var(--surface);color:var(--ink)}
+.so-tot .tot-v b.num{font-size:20px}
+.sogroups{display:flex;flex-direction:column;gap:14px}
+.sogrp-h{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:13px;font-weight:600;color:var(--ink-2);
+  font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.sogrp-n{color:var(--ink-3);font-weight:500}
+.sogrp[hidden],.sorow[hidden],.sotab[hidden]{display:none}
+.sotabs{margin-bottom:12px}
+.pastdocs{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:0 0 12px}
+.pastdoc{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--rule,var(--border))}
+.pastdoc:last-child{border-bottom:0}
+.pastdoc .pd-n{flex:1 1 240px;min-width:0;overflow-wrap:anywhere;font-size:13px}
+.pastdoc .pd-n small{display:block;color:var(--ink-3);font-size:12px}
+.pastdoc .pd-b{display:flex;gap:6px}
+.pastnote{margin-bottom:12px}
+.pastdoc-body{margin:0 0 12px}
 /* chips, the HQ set */
 .ch{display:inline-flex;align-items:center;gap:5px;border-radius:3px;padding:1px 7px;
   font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid transparent;line-height:1.6}
@@ -3513,7 +3536,9 @@ window.H = (function () {
       s('Duration of Order', '<p>' + esc(o.startDate) + ' to ' + esc(o.endDate) + '</p>');
       s('Payment Schedule', '<p>' + esc(o.paymentSchedule) + '</p>');
     } else {
-      if (has(o.deliverySchedule)) s('Delivery Schedule', '<p>' + esc(o.deliverySchedule) + '</p>');
+      /* noSchedules (Jonna, 16 Nov 2026): the two schedules do not apply to
+         this order, so neither prints, whatever text a template left behind. */
+      if (!o.noSchedules && has(o.deliverySchedule)) s('Delivery Schedule', '<p>' + esc(o.deliverySchedule) + '</p>');
       s('Duration of Order', '<p>' + esc(o.startDate) + ' to ' + esc(o.endDate) + '</p>');
       /* A payment schedule and a fee estimate are two ways of saying the same
          thing, and an order that carries both says it twice and invites the
@@ -3521,7 +3546,7 @@ window.H = (function () {
          statement. The rate and maximum fee stay ON the order — they are still
          what the hours are measured against on screen — they just do not print
          a second, vaguer answer underneath the first. */
-      if (has(o.paymentSchedule)) {
+      if (!o.noSchedules && has(o.paymentSchedule)) {
         s('Payment Schedule', '<p>' + esc(o.paymentSchedule) + '</p>');
       } else {
         s('Estimate of Total Fees for Time and Material / Maximum Fee',
@@ -3815,6 +3840,8 @@ window.H = (function () {
     'status board':     '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
     'needs you':        '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.2v.1"/>',
     'send orders':      '<path d="M4 12l16-8-6 16-2.5-6.2L4 12z"/>',
+    'service orders':   '<path d="M6 3h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v6h6M9 13h6M9 17h4"/>',
+    'agreements':       '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     'executed documents':'<path d="M6 3h9l5 5v13a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v6h6M9 14.5l2 2 4-4.5"/>',
     'hours remaining':  '<circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/>',
     'my expenses':      '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -3845,7 +3872,7 @@ window.H = (function () {
         'The Company\u2019s Month', 'The Company\u2019s Weeks', 'Time Submitted'] },
     { label: 'Money', names: ['My Invoices', 'My Expenses', 'Invoices', 'Contractor Expenses'] },
     { label: 'Service Orders', names: ['Hours Remaining', 'My Service Orders', 'New Service Order',
-        'Revise an Order', 'End a Service Order', 'My Agreements', 'Executed Documents',
+        'Service Orders', 'My Agreements', 'Agreements',
         'Already Approved', 'Already Decided'] },
     { label: 'Setup', names: ['Company Details', 'View As'] }
   ];
@@ -5142,6 +5169,315 @@ function reviewsTable(list, C) {
     });
   }
 
+  /* ---- past years, brought over from Smartsheet --------------------------
+     Jonna, 16 November 2026: every service order before FY 2027 lives here now,
+     not in Smartsheet. Each company's records sit in ITS OWN private data, at
+     agreements/past/<slug>.json, with the signed PDFs beside them under
+     agreements/past/files/. A company can only ever read its own, because the
+     relay only lets a company key into its own repository — no rule on this
+     page is what keeps Phoenix out of Actualize's.
+
+     ⚠ Read only, always. A past record is not revised, not ended and not
+     signed here; it is the record of what was agreed.
+
+     ⚠ The email approvals (Seth's "approved", hour increases agreed by email)
+     and the thirteen companies MISMO no longer works with are MISMO-only. They
+     are indexed in Team HQ's data as 'sopast' and the files are on the Q Drive
+     in the Service Orders Archive. None of it is ever requested on a company's
+     screen. */
+  var PAST = {};
+  var PAST_MISMO = null;
+  function loadPast(slug) {
+    if (Object.prototype.hasOwnProperty.call(PAST, slug)) return Promise.resolve(PAST[slug]);
+    return R.readOr(keyFor(slug), 'agreements/past/' + slug + '.json', null)
+      .then(function (r) { PAST[slug] = (r && r.data) || null; return PAST[slug]; })
+      /* Not there yet, or a key that cannot read agreements/ at all: no past
+         years, and nothing else on the page is affected. */
+      .catch(function () { PAST[slug] = null; return null; });
+  }
+  function loadPastMismo() {
+    if (PAST_MISMO) return Promise.resolve(PAST_MISMO);
+    if (!R.readData) return Promise.resolve({});
+    return R.readData('team-hq', 'sopast')
+      .then(function (r) { PAST_MISMO = (r && r.data) || {}; return PAST_MISMO; })
+      .catch(function () { return {}; });
+  }
+  function isoMDY(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
+    return m ? m[2] + '/' + m[3] + '/' + m[1].slice(2) : (s || '');
+  }
+  /* Smartsheet kept names surname first ("Bittenbender, Erin"); the page says
+     them the way people do. A name with more than one comma is left alone. */
+  function nameFirst(v) {
+    return String(v || '').split(/\s*;\s*/).map(function (n) {
+      var m = /^([^,]+),\s*([^,]+)$/.exec(n.trim());
+      return m ? m[2] + ' ' + m[1] : n.trim();
+    }).join(', ');
+  }
+  function pastRuns(r) {
+    if (!r.startDate && !r.endDate) return '';
+    return isoMDY(r.startDate) + ' to ' + isoMDY(r.earlyEndDate || r.endDate) +
+      (r.earlyEndDate ? ' (ended early)' : '');
+  }
+  function pastFee(r) {
+    if (r.maximumFee == null) return '—';
+    return money(r.maximumFee);
+  }
+  function pastChip(r) {
+    var tone = r.status === 'Active' ? 'good' : r.status === 'Canceled' || r.status === 'Never Executed' ? 'warn' : 'quiet';
+    return '<span class="pill ' + tone + '">' + esc(r.status || 'Past Year') + '</span>';
+  }
+  /* The searchable text of a row: title, company, facilitator and kind. */
+  function pastQ(r) {
+    return [r.title, r.company, nameFirst(r.facilitator), r.facilitator, r.kind, 'FY ' + r.fy].join(' ').toLowerCase();
+  }
+  function docButtons(slug, d) {
+    return '<button class="gobtn ghost vwfile" type="button" data-slug="' + esc(slug) +
+      '" data-path="' + esc(d.path) + '" data-name="' + esc(d.name) + '">View</button>' +
+      '<button class="gobtn ghost dlfile" type="button" data-slug="' + esc(slug) +
+      '" data-path="' + esc(d.path) + '" data-name="' + esc(d.name) + '">Download</button>';
+  }
+  function pastDocList(slug, docs, extra) {
+    var h = '';
+    if ((docs || []).length) {
+      h += '<h4 class="subh">Documents</h4><div class="pastdocs">' + docs.map(function (d) {
+        return '<div class="pastdoc"><span class="pd-n">' + esc(d.name) +
+          '<small>' + esc(d.label || 'Document') + '</small></span><span class="pd-b">' +
+          docButtons(slug, d) + '</span></div>';
+      }).join('') + '</div>';
+    }
+    /* ⚠ MISMO only. `extra` is never passed on a company's screen. */
+    if ((extra || []).length) {
+      h += '<h4 class="subh">MISMO Only</h4><div class="pastdocs">' + extra.map(function (d) {
+        return '<div class="pastdoc"><span class="pd-n">' + esc(d.name) + '<small>' +
+          esc(d.label || 'Document') + ' · Q Drive › Service Orders Archive › ' +
+          esc(String(d.archive || '').replace(/\//g, ' › ')) + '</small></span></div>';
+      }).join('') + '</div>' +
+        '<p class="fineprint">Email approvals and the former companies’ files are kept on the ' +
+        'Q Drive only. Companies never see this list.</p>';
+    }
+    if (!h) h = '<p class="fineprint">No signed copy came over from Smartsheet for this one. ' +
+      'The details above are the record.</p>';
+    return h;
+  }
+  function pastBody(r, slug, extra, admin) {
+    var paid = r.feeType && /fixed/i.test(r.feeType);
+    function ul(a) {
+      return (a || []).length ? '<ul>' + a.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '<p>—</p>';
+    }
+    function para(label, v) {
+      return v ? '<div class="sec"><div class="sn">' + esc(label) + '</div><p>' + esc(v) + '</p></div>' : '';
+    }
+    var sig = '';
+    if (r.consultantSigned || r.mismoSigned) {
+      sig = '<div class="fields">' +
+        (r.consultantSigned ? fld('Signed for ' + (r.company || 'the Company'),
+          [r.consultantSigned.by, r.consultantSigned.title, r.consultantSigned.at && isoMDY(r.consultantSigned.at) + r.consultantSigned.at.slice(10)].filter(Boolean).join(' — ')) : '') +
+        (r.mismoSigned ? fld('Signed for MISMO',
+          [r.mismoSigned.by, r.mismoSigned.title, r.mismoSigned.at && isoMDY(r.mismoSigned.at) + r.mismoSigned.at.slice(10)].filter(Boolean).join(' — ')) : '') +
+        '</div>';
+    }
+    return '<div class="note pastnote"><b>Imported from Smartsheet.</b> A record from a past ' +
+      'year is read only — it cannot be revised or ended here.</div>' +
+      '<div class="fields">' +
+      (admin ? fld('Company', r.company) : '') +
+      fld('Kind', r.kind) +
+      fld('Fiscal Year', r.fy ? 'FY ' + r.fy : '—') +
+      fld('Status', r.status) +
+      fld('Runs', pastRuns(r) || '—') +
+      (r.effectiveDate ? fld('Effective', isoMDY(r.effectiveDate), 1) : '') +
+      (r.hourlyRate != null ? fld('Hourly Rate', money(r.hourlyRate), 1) : '') +
+      (r.estimatedHours != null ? fld('Estimated Hours', r.estimatedHours, 1) : '') +
+      (r.maximumFee != null ? fld(paid ? 'Fixed Fee' : 'Maximum Fee', money(r.maximumFee), 1) : '') +
+      (r.feeType ? fld('Fee Type', r.feeType) : '') +
+      (r.facilitator ? fld('Facilitator', nameFirst(r.facilitator)) : '') +
+      (r.executedVia ? fld('Executed Through', r.executedVia) : '') +
+      '</div>' + sig +
+      ((r.description || (r.services || []).length || (r.deliverables || []).length)
+        ? '<div class="doc pastdoc-body">' +
+          para('Description', r.description) +
+          ((r.services || []).length ? '<div class="sec"><div class="sn">Services</div>' + ul(r.services) + '</div>' : '') +
+          ((r.deliverables || []).length ? '<div class="sec"><div class="sn">Deliverables</div>' + ul(r.deliverables) + '</div>' : '') +
+          para('Delivery Schedule', r.deliverySchedule) +
+          para('Payment Schedule', r.paymentSchedule) +
+          para('Tasks or Resources Needed From MISMO', r.tasksFromMismo) +
+          para('Any Agreed Modifications to Master Agreement Terms', r.modifications) +
+          '</div>'
+        : '') +
+      pastDocList(slug, r.docs, extra);
+  }
+  /* One row of a past record, wrapped with what the filters read. */
+  function pastRow(r, slug, extra, admin, coName) {
+    var key = 'past-' + (slug || 'mismo') + '-' + r.id;
+    return '<div class="sorow" data-co="' + esc(coName || r.company || '') + '" data-fy="' + esc(r.fy || '') +
+      '" data-st="past" data-fee="' + esc(r.maximumFee == null ? '' : r.maximumFee) +
+      '" data-q="' + esc(pastQ(r)) + '">' +
+      panelRow(key, r.title || '(untitled)', [nameFirst(r.facilitator), r.kind, r.fy ? 'FY ' + r.fy : '', pastRuns(r)].filter(Boolean).join(' · '),
+        pastFee(r), pastBody(r, slug, extra, admin), pastChip(r)) + '</div>';
+  }
+  /* A loose document that came over without a record of its own. */
+  function pastDocRow(d, slug, coName, admin) {
+    var key = 'pastdoc-' + (slug || 'mismo') + '-' + d.name;
+    var body = '<div class="note pastnote"><b>Imported from Smartsheet.</b> This document came over ' +
+      'without a record of its own in the sheet.</div>' +
+      '<div class="fields">' + (admin ? fld('Company', coName) : '') +
+      fld('Fiscal Year', d.fy ? 'FY ' + d.fy : '—') + fld('Kind', d.label || 'Document') + '</div>' +
+      (d.path ? pastDocList(slug, [d], null) : pastDocList(slug, [], [d]));
+    return '<div class="sorow" data-co="' + esc(coName || '') + '" data-fy="' + esc(d.fy || '') +
+      '" data-st="past" data-fee="" data-q="' + esc((d.name + ' ' + coName + ' ' + (d.label || '')).toLowerCase()) + '">' +
+      panelRow(key, d.name.replace(/\.(pdf|docx)$/i, ''), [d.label, d.fy ? 'FY ' + d.fy : ''].filter(Boolean).join(' · '),
+        '', body, '<span class="pill quiet">Document</span>') + '</div>';
+  }
+  /* View a filed PDF in a new tab — the same private fetch as Download. */
+  function wireViews(root) {
+    (root || document).querySelectorAll('.vwfile').forEach(function (b) {
+      if (b.dataset.wired) return; b.dataset.wired = '1';
+      b.addEventListener('click', function () {
+        /* Opened first, filled after, so the browser does not treat it as a
+           pop-up the person never asked for. */
+        var w = window.open('', '_blank');
+        var was = b.textContent;
+        b.disabled = true; b.textContent = 'Fetching…';
+        R.readRaw(keyFor(b.dataset.slug), b.dataset.path).then(function (r) {
+          var bin = atob(r.base64), bytes = new Uint8Array(bin.length);
+          for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          var type = /\.docx$/i.test(b.dataset.path)
+            ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
+          var url = URL.createObjectURL(new Blob([bytes], { type: type }));
+          if (w) w.location.href = url; else window.open(url, '_blank');
+          setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+          b.disabled = false; b.textContent = was;
+        }).catch(function (e) {
+          if (w) w.close();
+          b.disabled = false; b.textContent = was;
+          if (e && e.missing) { toast('That file is recorded but is not in the repository', 'warn'); return; }
+          failed(e);
+        });
+      });
+    });
+  }
+  /* The search, company, year and status filters over .sorow rows. One
+     function for both screens, so they cannot drift apart. */
+  function wireOrderFilters(root) {
+    var box = root && root.querySelector('.sofilters');
+    if (!box || box.dataset.wired) return;
+    box.dataset.wired = '1';
+    var q = box.querySelector('.so-q'), co = box.querySelector('.so-co'),
+        fy = box.querySelector('.so-fy'), stp = box.querySelector('.so-st');
+    function apply() {
+      var words = String(q && q.value || '').toLowerCase().split(/\s+/).filter(Boolean);
+      var c = co ? co.value : '', y = fy ? fy.value : '', s = stp ? stp.value : '';
+      var shown = 0, sum = 0, noMax = 0;
+      root.querySelectorAll('.sorow').forEach(function (r) {
+        var ok = (!c || r.dataset.co === c) &&
+          (!y || r.dataset.fy === y) &&
+          (!s || r.dataset.st === s) &&
+          words.every(function (w) { return r.dataset.q.indexOf(w) >= 0; });
+        r.hidden = !ok;
+        if (ok) {
+          shown++;
+          if (r.dataset.fee === '') noMax++; else sum += Number(r.dataset.fee) || 0;
+        }
+      });
+      root.querySelectorAll('.sogrp').forEach(function (g) {
+        var n = g.querySelectorAll('.sorow:not([hidden])').length;
+        g.hidden = !n;
+        var cnt = g.querySelector('.sogrp-n'); if (cnt) cnt.textContent = n;
+      });
+      var out = root.querySelector('.so-count');
+      if (out) out.innerHTML = '<b class="num">' + shown + '</b> ' + (shown === 1 ? 'record' : 'records') +
+        (sum ? ' · <b class="num">' + money0(sum) + '</b> in maximum fees' : '') +
+        (noMax && shown ? ' <span class="fineprint">(' + noMax + ' with no maximum)</span>' : '');
+      var none = root.querySelector('.so-none'); if (none) none.hidden = shown > 0;
+    }
+    [q, co, fy, stp].forEach(function (el) {
+      if (!el) return;
+      el.addEventListener(el === q ? 'input' : 'change', apply);
+    });
+    box.__apply = apply;
+    apply();
+  }
+  function fyOfMDY(s) {
+    var d = H.parse(s);
+    if (!d) return '';
+    return String(d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear());
+  }
+  function thisFY() {
+    var d = new Date();
+    return String(d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear());
+  }
+
+  /* The company's own past years: My Service Orders › Past Years, and the
+     earlier agreements under My Agreements. ⚠ Only ever this company's file,
+     read with this company's key — and no MISMO-only list is passed, so an
+     email approval can never be drawn here. */
+  function fillPastMine(C) {
+    var sec = view.querySelector('.psec[data-name="My Service Orders"]');
+    if (sec) {
+      sec.querySelectorAll('[data-sotab]').forEach(function (b) {
+        if (b.tagName !== 'BUTTON' || b.dataset.tw) return; b.dataset.tw = '1';
+        b.addEventListener('click', function () {
+          sec.querySelectorAll('button[data-sotab]').forEach(function (x) {
+            x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+          sec.querySelectorAll('div.sotab').forEach(function (t) { t.hidden = t.dataset.sotab !== b.dataset.sotab; });
+        });
+      });
+    }
+    loadPast(C.slug).then(function (P0) {
+      var host = sec && sec.querySelector('.past-mine');
+      var agHost = view.querySelector('.psec[data-name="My Agreements"] .past-ag-mine');
+      var recs = (P0 && P0.records) || [], docs = (P0 && P0.otherDocs) || [];
+      var ord = recs.filter(function (r) { return r.section !== 'agreement'; });
+      var ag = recs.filter(function (r) { return r.section === 'agreement'; });
+      if (host) {
+        var byFy = {};
+        ord.forEach(function (r) { (byFy[r.fy || ''] = byFy[r.fy || ''] || []).push(pastRow(r, C.slug, null, false, C.F.company)); });
+        docs.filter(function (d) { return d.section !== 'agreement'; }).forEach(function (d) {
+          (byFy[d.fy || ''] = byFy[d.fy || ''] || []).push(pastDocRow(d, C.slug, C.F.company, false)); });
+        var years = Object.keys(byFy).sort().reverse();
+        host.innerHTML = years.length ? years.map(function (y) {
+          return '<div class="sogrp"><h4 class="sogrp-h">' + (y ? 'FY ' + esc(y) : 'Undated') +
+            ' <span class="sogrp-n"></span></h4><div class="hqrows">' + byFy[y].join('') + '</div></div>';
+        }).join('') : '<p class="empty">No earlier service orders have been brought over for ' +
+          esc(C.F.company) + '.</p>';
+        var sel = sec.querySelector('.so-fy');
+        if (sel) years.filter(Boolean).forEach(function (y) {
+          var op = document.createElement('option'); op.value = y; op.textContent = 'FY ' + y; sel.appendChild(op); });
+        var btn = sec.querySelector('button[data-sotab="past"]');
+        if (btn && ord.length) btn.textContent = 'Past Years (' + ord.length + ')';
+        wireOrderFilters(sec.querySelector('div.sotab[data-sotab="past"]'));
+      }
+      if (agHost) {
+        var ah = ag.map(function (r) { return pastRow(r, C.slug, null, false, C.F.company); }).join('') +
+          docs.filter(function (d) { return d.section === 'agreement'; }).map(function (d) {
+            return pastDocRow(d, C.slug, C.F.company, false); }).join('');
+        agHost.innerHTML = ah ? '<div class="hqrows">' + ah + '</div>'
+          : '<p class="empty">No earlier agreements have been brought over.</p>';
+      }
+      wirePanelRows(view);
+      onPanelOpen(wireViews); onPanelOpen(wireDownloads);
+    });
+  }
+
+  /* Join two pieces of a title, dropping words the second repeats from the
+     end of the first: ("Architecture Workgroup", "Workgroup Facilitation")
+     gives "Architecture Workgroup Facilitation". Case and spacing are kept
+     from the first piece. */
+  function joinNoRepeat(a, b) {
+    a = String(a || ''); b = String(b || '');
+    if (!b.trim()) return a.replace(/\s+$/, '');
+    if (!a.trim()) return b.replace(/^\s+/, '');
+    var aw = a.trim().split(/\s+/), bw = b.trim().split(/\s+/), k = 0;
+    for (var n = Math.min(aw.length, bw.length); n > 0; n--) {
+      var same = true;
+      for (var i = 0; i < n; i++) {
+        if (aw[aw.length - n + i].toLowerCase() !== bw[i].toLowerCase()) { same = false; break; }
+      }
+      if (same) { k = n; break; }
+    }
+    var rest = bw.slice(k).join(' ');
+    return a.replace(/\s+$/, '') + (rest ? ' ' + rest : '');
+  }
   function loadCompany(slug) {
   return loadCompanyCore(slug).then(withReviews);
 }
@@ -6056,7 +6392,23 @@ function loadCompanyCore(slug) {
             (feeLabel(o)), body, pill(st[o.id]));
         }).join('') + '</div>';
       }
-      var all = isFac() ? '' : signerOrdersHtml();
+      /* This Year / Past Years (Jonna, 16 November 2026). Past years are the
+         company's own orders brought over from Smartsheet, read only, from
+         agreements/past/ in its own data — fetched after the page is up. */
+      var all = isFac() ? '' :
+        '<div class="cvpick sotabs" role="tablist">' +
+        '<button type="button" class="on" data-sotab="now" role="tab" aria-selected="true">This Year</button>' +
+        '<button type="button" data-sotab="past" role="tab" aria-selected="false">Past Years</button></div>' +
+        '<div class="sotab" data-sotab="now">' + signerOrdersHtml() + '</div>' +
+        '<div class="sotab" data-sotab="past" hidden>' +
+        '<p class="lede">Your service orders from before this fiscal year, brought over from ' +
+        'Smartsheet. <b>Read only</b> — open one to read it or download the signed copy.</p>' +
+        '<div class="sofilters">' +
+        '<input type="search" class="so-q" placeholder="Search title, facilitator or kind" aria-label="Search past service orders">' +
+        '<select class="so-fy" aria-label="Fiscal year"><option value="">Every Year</option></select></div>' +
+        '<div class="tot so-tot"><span class="tot-l">Showing</span><span class="tot-v so-count"></span></div>' +
+        '<p class="empty so-none" hidden>Nothing matches.</p>' +
+        '<div class="sogroups past-mine"><p class="fineprint">Loading\u2026</p></div></div>';
 
       /* ---- My Agreements -------------------------------------------------
          ⚠ Not even REQUESTED for a facilitator. An hours-only key cannot read
@@ -6205,7 +6557,9 @@ function loadCompanyCore(slug) {
             : sect('To Review', toReview.length, review) +
               hb +
               sect('My Service Orders', yearOrders.length, all) +
-              sect('My Agreements', F.letters.length, ag) +
+              sect('My Agreements', F.letters.length, ag +
+                '<h4 class="subh">Earlier Agreements</h4>' +
+                '<div class="past-ag-mine"><p class="fineprint">Loading\u2026</p></div>') +
               sect('Help', null, helpFor('contractor', F, {
                 expenses: !!(person && person.expenses),
                 timeManager: !!(person && person.timeManager) }))
@@ -6227,6 +6581,7 @@ function loadCompanyCore(slug) {
               openPeriod(F, invFiles, C.invoices || [], new Date()));
           }
           if (!isFac()) wireReview(C, st, toReview);
+          if (!isFac()) fillPastMine(C);
           wireSigned(C, F);
           /* Both: the agreements sit in rows that open on the right, so the
              button does not exist until the panel does. */
@@ -12313,7 +12668,13 @@ function loadCompanyCore(slug) {
       var input = f.type === 'area'
         ? '<textarea class="nof" rows="3" data-k="' + esc(f.k) + '"></textarea>'
         : '<input type="text" class="nof" data-k="' + esc(f.k) + '">';
-      return '<div class="f' + (f.type === 'area' ? ' wide' : '') + '"><label>' +
+      var isSched = f.k === 'deliverySchedule' || f.k === 'paymentSchedule';
+      return (f.k === 'deliverySchedule'
+          ? '<div class="f wide"><label>Delivery and Payment Schedules</label>' +
+            '<select class="nof" data-k="schedules" id="no-sched">' +
+            '<option value="">Include them on the order</option>' +
+            '<option value="none">Not applicable to this order</option></select></div>' : '') +
+        '<div class="f' + (f.type === 'area' ? ' wide' : '') + (isSched ? ' no-schedf' : '') + '"><label>' +
         esc(f.label) + (f.req ? ' *' : '') + '</label>' + input + '</div>';
     }).join('');
 
@@ -12794,7 +13155,7 @@ function loadCompanyCore(slug) {
           });
         });
         if (!rows.length) {
-          return { count: 0, body: '<p class="empty">Every order is executed. Nothing left to revise ' +
+          return { count: 0, rows: rows, body: '<p class="empty">Every order is executed. Nothing left to revise ' +
             '— a change to an executed order is a Modification, not a revision.</p>' };
         }
         return {
@@ -12811,10 +13172,12 @@ function loadCompanyCore(slug) {
                 fld('Maximum Fee', feeLabel(n.order), 1) +
                 '</div>' + reviseBlock(n) +
                 '<div class="dochost">' + P.orderDoc(n.C.F, n.order) + '</div>';
+              n.body = body;
               return panelRow('ra-' + n.idx, n.order.subject, n.company,
                 (feeLabel(n.order)),
                 body, pill(n.st));
-            }).join('') + '</div>'
+            }).join('') + '</div>',
+          rows: rows
         };
       })();
 
@@ -12841,7 +13204,7 @@ function loadCompanyCore(slug) {
         });
         var live = rows.filter(function (n) { return !n.order.endedOn; });
         if (!rows.length) {
-          return { count: 0, body: '<p class="empty">No order has been executed yet. An order that ' +
+          return { count: 0, rows: rows, body: '<p class="empty">No order has been executed yet. An order that ' +
             'has not been signed by both sides is not ended — it is revised, or simply never ' +
             'sent.</p>' };
         }
@@ -12887,10 +13250,79 @@ function loadCompanyCore(slug) {
                 'told, and the reason is what they read. <b>Nothing is deleted</b> — the order, ' +
                 'its signatures and its hours all stay exactly where they are.</p>' +
                 '<div class="dochost">' + P.orderDoc(n.C.F, o) + '</div>';
+              n.body = body;
               return panelRow('end-' + n.idx, o.subject, n.company, feeLabel(o), body, pill(n.st));
             }).join('') + '</div>',
           rows: rows
         };
+      })();
+
+      /* ---- Service Orders: ONE page --------------------------------------
+         Jonna, 16 November 2026: "end a service order is confusing". Revise an
+         Order, End a Service Order and the order half of Executed Documents
+         were three places to look for the same orders. Now there is one: every
+         order, this year and every past year, searchable, grouped by company,
+         and what can be DONE to an order is decided by where it stands —
+         revised if it is not executed yet, ended if it is, read only if it is
+         from a past year. The revise and end forms are the same ones as before;
+         only the way in has changed. */
+      var soPage = (function () {
+        var rows = [];
+        (reviseAny.rows || []).forEach(function (n) {
+          if (n.st.key === 'ended') return;   // an ended order is listed from endAny
+          rows.push({ n: n, key: 'so-ra-' + n.idx, st: 'progress' });
+        });
+        (endAny.rows || []).forEach(function (n) {
+          rows.push({ n: n, key: 'so-end-' + n.idx, st: n.order.endedOn ? 'ended' : 'executed' });
+        });
+        var fys = {}, cur = thisFY();
+        fys[cur] = 1;
+        rows.forEach(function (x) { var y = fyOfMDY(x.n.order.startDate); if (y) fys[y] = 1; });
+        for (var y = Number(cur) - 1; y >= 2020; y--) fys[String(y)] = 1;
+        function who(C, o) {
+          return (C.F.people || []).filter(function (p) {
+            return (p.orders || []).indexOf(o.id) >= 0; }).map(function (p) { return p.name; }).join(', ');
+        }
+        var groups = list.map(function (C) {
+          var mine = rows.filter(function (x) { return x.n.C === C; }).sort(function (a, b) {
+            return String(a.n.order.subject || '').localeCompare(String(b.n.order.subject || ''),
+              undefined, { sensitivity: 'base', numeric: true });
+          });
+          return '<div class="sogrp" data-co="' + esc(C.F.company) + '"><h4 class="sogrp-h">' +
+            esc(C.F.company) + ' <span class="sogrp-n"></span></h4><div class="hqrows">' +
+            mine.map(function (x) {
+              var o = x.n.order, per = perReviewOrder(o);
+              var names = who(C, o);
+              return '<div class="sorow" data-co="' + esc(C.F.company) + '" data-fy="' +
+                esc(fyOfMDY(o.startDate)) + '" data-st="' + x.st + '" data-fee="' +
+                esc(per || o.maximumFee == null ? '' : o.maximumFee) + '" data-q="' +
+                esc([o.subject, C.F.company, names, 'service order'].join(' ').toLowerCase()) + '">' +
+                panelRow(x.key, o.subject, [names, o.startDate + ' to ' + o.endDate].filter(Boolean).join(' · '),
+                  feeLabel(o), x.n.body, pill(x.n.st)) + '</div>';
+            }).join('') + '</div></div>';
+        }).join('');
+        var inProgress = rows.filter(function (x) { return x.st === 'progress'; }).length;
+        var body = '<p class="lede">Every service order, this year and every year before it. ' +
+          '<b>Open one to act on it</b>: an order that is not executed yet is <b>revised</b>, an executed ' +
+          'one is <b>ended</b>, and a past year’s is read only. Search by title, company, ' +
+          'facilitator or kind.</p>' +
+          '<div class="sofilters">' +
+          '<input type="search" class="so-q" placeholder="Search title, company, facilitator or kind" aria-label="Search service orders">' +
+          '<select class="so-co" aria-label="Company"><option value="">Every Company</option>' +
+            list.map(function (C) { return '<option>' + esc(C.F.company) + '</option>'; }).join('') + '</select>' +
+          '<select class="so-fy" aria-label="Fiscal year"><option value="">Every Year</option>' +
+            Object.keys(fys).sort().reverse().map(function (y) {
+              return '<option value="' + y + '"' + (y === cur ? ' selected' : '') + '>FY ' + y +
+                (y === cur ? ' (This Year)' : '') + '</option>'; }).join('') + '</select>' +
+          '<select class="so-st" aria-label="Status"><option value="">Every Status</option>' +
+            '<option value="progress">In Progress</option><option value="executed">Executed</option>' +
+            '<option value="ended">Ended</option><option value="past">Past Years</option></select>' +
+          '</div>' +
+          '<div class="tot so-tot"><span class="tot-l">Showing</span><span class="tot-v so-count"></span></div>' +
+          '<p class="empty so-none" hidden>Nothing matches. Try Every Year, or fewer words.</p>' +
+          '<div class="sogroups">' + groups + '</div>' +
+          '<p class="fineprint so-pastload">Past years are loading…</p>';
+        return { count: inProgress || null, body: body };
       })();
 
       var sendBody = '<p class="lede">' + esc(list[0].F.vpProduct.name) + '\u2019s release now sends an order to the ' +
@@ -13062,15 +13494,94 @@ function loadCompanyCore(slug) {
               'Everything else on this page is unaffected.</div>';
           }
         })()) +
-        sect('Revise an Order', reviseAny.count, reviseAny.body) +
-        sect('End a Service Order', endAny.count || null, endAny.body) +
+        sect('Service Orders', soPage.count, soPage.body) +
         sect('New Service Order', SAVED_DRAFTS.length || null, newOrderForm(list)) +
         sect('Company Details', list.length, companyDetails(list)) +
         sect('Send Orders', tally.vp || 0, sendBody) +
-        sect('Executed Documents', null, archive) +
+        sect('Agreements', null, archive +
+          '<h4 class="subh">Earlier Agreements</h4>' +
+          '<p class="fineprint">Master services agreements, extension letters and their ' +
+          'modifications from before FY 2027, brought over from Smartsheet. Read only.</p>' +
+          '<div class="past-ag"><p class="fineprint">Loading\u2026</p></div>') +
         (canViewAs() ? sect('View As', null, viewAsSection(list)) : '') +
         sect('Help', null, helpFor('admin', list[0] && list[0].F)));
       if (by) wireApprove(list, by, adminView);
+      /* Service Orders filters, then the past years dropped in underneath once
+         they arrive. ⚠ Past years are fetched AFTER the page is up, and never
+         block it: a company with nothing imported, or a read that fails, just
+         has no past rows. */
+      (function () {
+        var soSec = view.querySelector('.psec[data-name="Service Orders"]');
+        if (soSec) wireOrderFilters(soSec);
+        onPanelOpen(wireViews); wireViews(document);
+        var token = {};
+        adminView.__pastToken = token;
+        Promise.all([Promise.all(list.map(function (C) { return loadPast(C.slug); })), loadPastMismo()])
+          .then(function (got) {
+            if (adminView.__pastToken !== token) return;   // redrawn since; that draw fills itself
+            var per = got[0], M = got[1] || {}, extra = M.extra || {};
+            var soHost = soSec && soSec.querySelector('.sogroups');
+            var agRows = [];
+            function addTo(host, coName, html) {
+              if (!host || !html) return;
+              var g = host.querySelector('.sogrp[data-co="' + CSS.escape(coName) + '"]');
+              if (!g) {
+                g = document.createElement('div'); g.className = 'sogrp'; g.setAttribute('data-co', coName);
+                g.innerHTML = '<h4 class="sogrp-h">' + esc(coName) + ' <span class="sogrp-n"></span>' +
+                  '<span class="pill quiet">Former</span></h4><div class="hqrows"></div>';
+                host.appendChild(g);
+                var sel = soSec.querySelector('.so-co');
+                if (sel && host === soHost) { var op = document.createElement('option'); op.textContent = coName; sel.appendChild(op); }
+              }
+              g.querySelector('.hqrows').insertAdjacentHTML('beforeend', html);
+            }
+            var nPast = 0;
+            list.forEach(function (C, i) {
+              var P0 = per[i]; if (!P0) return;
+              var oh = '', ah = '';
+              (P0.records || []).forEach(function (r) {
+                var h = pastRow(r, C.slug, extra[r.id], true, C.F.company);
+                if (r.section === 'agreement') ah += h; else { oh += h; nPast++; }
+              });
+              (P0.otherDocs || []).forEach(function (d) {
+                var h = pastDocRow(d, C.slug, C.F.company, true);
+                if (d.section === 'agreement') ah += h; else oh += h;
+              });
+              addTo(soHost, C.F.company, oh);
+              if (ah) agRows.push({ co: C.F.company, html: ah });
+            });
+            var former = {};
+            (M.records || []).forEach(function (r) {
+              (former[r.company] = former[r.company] || { o: '', a: '' })[r.section === 'agreement' ? 'a' : 'o'] +=
+                pastRow(Object.assign({}, r, { docs: [] }), null, r.docs, true, r.company);
+              if (r.section !== 'agreement') nPast++;
+            });
+            (M.otherDocs || []).forEach(function (d) {
+              /* A MISMO-only loose file: an email, or a former company's. Listed
+                 under its company; current companies keep their own group. */
+              var co = d.company || 'Unknown';
+              (former[co] = former[co] || { o: '', a: '' }).o += pastDocRow(d, null, co, true);
+            });
+            Object.keys(former).sort().forEach(function (co) {
+              addTo(soHost, co, former[co].o);
+              if (former[co].a) agRows.push({ co: co, html: former[co].a });
+            });
+            var load = soSec && soSec.querySelector('.so-pastload');
+            if (load) load.textContent = nPast
+              ? 'Past years: ' + nPast + ' records brought over from Smartsheet, read only. Choose Every Year to see them.'
+              : 'No past years have been brought over yet.';
+            var agHost = view.querySelector('.psec[data-name="Agreements"] .past-ag');
+            if (agHost) {
+              agHost.innerHTML = agRows.length
+                ? '<div class="sogroups">' + agRows.map(function (g) {
+                    return '<div class="sogrp"><h4 class="sogrp-h">' + esc(g.co) + '</h4><div class="hqrows">' +
+                      g.html + '</div></div>'; }).join('') + '</div>'
+                : '<p class="empty">No earlier agreements have been brought over yet.</p>';
+            }
+            wirePanelRows(view);
+            if (soSec && soSec.querySelector('.sofilters').__apply) soSec.querySelector('.sofilters').__apply();
+          });
+      })();
       wireInvoiceDecisions(list, adminView);
       try { wireHoursLeft(list); } catch (e) { if (window.console && console.warn) console.warn('hours remaining', e); }
       /* ⚠ The ending controls live in a side PANEL, which does not exist in
@@ -13473,8 +13984,11 @@ function loadCompanyCore(slug) {
           var t = cur(), n = String((document.getElementById('no-name') || {}).value || '').trim();
           if (!t || !n) return;
           if (t.fixedTitle) return;
-          setv('subject', (t.titlePre != null ? t.titlePre : t.fy + ' ') + n + (t.titleEnd ? ' ' + t.titleEnd : ''));
-          setv('description', (t.descPre || '') + n + (t.descEnd ? ' ' + t.descEnd : ''));
+          /* ⚠ No doubled words where the pieces meet (Jonna, 16 November 2026):
+             "Architecture Workgroup" + "Workgroup Facilitation" was coming out
+             as "Architecture Workgroup Workgroup Facilitation". */
+          setv('subject', joinNoRepeat(joinNoRepeat(t.titlePre != null ? t.titlePre : t.fy + ' ', n), t.titleEnd || ''));
+          setv('description', joinNoRepeat(joinNoRepeat(t.descPre || '', n), t.descEnd || ''));
         }
         function apply() {
           var t = cur(); if (!t) return;
@@ -13566,6 +14080,14 @@ function loadCompanyCore(slug) {
          reviewer stay. "Send for Review" sends the batch plus whatever is in the
          form, and each reviewer gets ONE email for everything they are asked. */
       var NO_BATCH = [];
+      function schedShow() {
+        var off = ((document.getElementById('no-sched') || {}).value === 'none');
+        document.querySelectorAll('.no-schedf').forEach(function (d) { d.hidden = off; });
+      }
+      (function () {
+        var sel = document.getElementById('no-sched');
+        if (sel && !sel.dataset.wired) { sel.dataset.wired = '1'; sel.addEventListener('change', schedShow); }
+      })();
       function readForm() {
         var vals = {};
         document.querySelectorAll('.nof').forEach(function (el) {
@@ -13610,8 +14132,9 @@ function loadCompanyCore(slug) {
              and the document renders them as bullets. One line per bullet. */
           services: asList(vals.services),
           deliverables: asList(vals.deliverables),
-          deliverySchedule: vals.deliverySchedule,
-          paymentSchedule: vals.paymentSchedule,
+          deliverySchedule: vals.schedules === 'none' ? '' : vals.deliverySchedule,
+          paymentSchedule: vals.schedules === 'none' ? '' : vals.paymentSchedule,
+          noSchedules: vals.schedules === 'none' || undefined,
           tasksFromMismo: vals.tasksFromMismo, modifications: vals.modifications,
           /* The line it sits on. Jonna, 1 Oct 2026: no forecast line until the
              financial system was up; 7 Nov 2026: it is, so every new order names one. */
@@ -13626,6 +14149,9 @@ function loadCompanyCore(slug) {
           var t = src.tplKey ? T.filter(function (x) { return x.key === src.tplKey; })[0] : null;
           if (t) TPL_CARRY.forEach(function (k) { if (t.carry[k] != null) order[k] = t.carry[k]; });
         })();
+        if (order.noSchedules && order.feeType === 'perReview') {
+          return say('A per-review order is paid by its schedules, so they cannot be left off. Choose Include them, or Hourly.', 'warn');
+        }
         if (!order.soaLine) order.soaLine = soaLineFromAccount(order.plAccount);
         if (!order.soaLine) return say('Choose the Statement of Activities line this order is paid from', 'warn');
         order.forecastLine = order.soaLine;
@@ -13748,6 +14274,7 @@ function loadCompanyCore(slug) {
           });
           var nm = document.getElementById('no-name'); if (nm) nm.value = d.name || '';
           var why = document.querySelector('.nowhy'); if (why) why.value = d.why || '';
+          schedShow();
           var del = document.getElementById('no-tpldel');
           if (del) { var t = ti >= 0 ? T[ti] : null; del.hidden = !(t && t.saved); }
           CURRENT_DRAFT = d.id; draftNote(d); paintBatch();
@@ -14222,6 +14749,12 @@ function loadCompanyCore(slug) {
           'You are emailed when a set is fully signed.',
           'Open <b>My Service Orders</b> and use <b>Save as PDF</b> on any order you want a copy of.',
           '<b>My Agreements</b> holds your Master Services Agreement extensions, which MISMO sends through DocuSign separately.']))
+        + blk('Orders From Past Years', steps([
+          '<b>My Service Orders</b> has two tabs: <b>This Year</b> and <b>Past Years</b>.',
+          '<b>Past Years</b> holds your company\u2019s service orders from before this fiscal year, brought over from Smartsheet. Search them, or pick a year.',
+          'Open one to read its details, and <b>View</b> or <b>Download</b> the signed copy.',
+          'They are <b>read only</b>. Earlier agreements and their letters are under <b>My Agreements</b>, below this year\u2019s.',
+          'Only your own company\u2019s orders are ever shown here.']))
         + helpTimeEntry()
         + helpAwaySeeing()
         + blk('Sending Your Invoice', steps([
@@ -14294,6 +14827,12 @@ function loadCompanyCore(slug) {
         '<b>Several at once?</b> Fill in one, press <b>Add Another</b>, and send them all together. Each reviewer gets one email for all of theirs.',
         '<b>Not ready?</b> <b>Save as Draft</b> keeps it under <b>Your Drafts</b>. Open one again, delete it, or tick several and send them together.',
         '<b>Save These Details as a Template</b> puts them at the top of Start From next time.']))
+      + blk('Service Orders — Every Order in One Place', steps([
+        '<b>Service Orders</b> lists every order, this year and every year before it, grouped by company.',
+        'Search by title, company, facilitator or kind. Pick a company, a fiscal year (it opens on this year) or a status: <b>In Progress</b>, <b>Executed</b>, <b>Ended</b> or <b>Past Years</b>.',
+        'Open an order to act on it. <b>Not executed yet:</b> change its terms and save the revision. <b>Executed:</b> set the last day it runs and why, and press <b>End This Order</b>. Hours already logged stay billable.',
+        '<b>Past Years</b> are the Smartsheet records, read only, with the signed copies to view or download. <b>MISMO Only</b> lists the email approvals and where they are on the Q Drive.',
+        'Each company sees only its own past orders, under <b>My Service Orders › Past Years</b>. Email approvals and the former companies never show to anybody outside MISMO.']))
       + blk('When a Review Comes Back', steps([
         'It appears in <b>Needs You</b> with what they said.',
         'Approved: press <b>Send to</b> the VP, or <b>Send All Approved Orders</b> when there are several.',
@@ -14336,7 +14875,7 @@ function loadCompanyCore(slug) {
         '<b>A week is only excused if they are away for the whole of it.</b> Partial absence still means the week is owed.',
         'Somebody who has <b>left</b> stops being emailed, but their missing weeks still show on your screens.']))
       + blk('Filing an Executed MSA Extension', steps([
-        'Open <b>Executed Documents</b> and find the company.',
+        'Open <b>Agreements</b> and find the company. Earlier agreements from Smartsheet are listed underneath, read only.',
         'Upload the <b>whole DocuSign output</b>, including the Certificate of Completion — that certificate is the evidence of execution and the part an auditor asks for.',
         'Put in the <b>Envelope ID</b> and press <b>File It</b>.']))
       + blk('What Needs You', '<p>Four things put an order on your desk: a requester’s review has ' +

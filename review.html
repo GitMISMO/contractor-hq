@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="so-version" content="20261116a">
+<meta name="so-version" content="20261116c">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0d314c">
 <title>Service Order Review</title>
@@ -302,7 +302,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   function asText(v) { return Array.isArray(v) ? v.join('\n') : (v == null ? '' : String(v)); }
   function asList(s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
   function editForm(o, hourly) {
-    return '<div class="ed">' + EDIT.filter(function (f) { return hourly || !f.hourly; }).map(function (f) {
+    return '<div class="ed">' + EDIT.filter(function (f) {
+      if (o.noSchedules && (f.k === 'deliverySchedule' || f.k === 'paymentSchedule')) return false;
+      return hourly || !f.hourly; }).map(function (f) {
       var lab = (!hourly && f.perLabel) || f.label, v = asText(o[f.k]), id = 'e-' + f.k;
       var input = f.area
         ? '<textarea id="' + id + '" data-k="' + f.k + '" rows="' + (f.list ? 4 : 3) + '">' + esc(v) + '</textarea>'
@@ -347,7 +349,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
       '<div class="tile"><b>' + esc(o.startDate || '—') + (o.endDate ? ' – ' + esc(o.endDate) : '') + '</b><span>Start to End</span></div>' +
       '</div></div>';
     var body = sec('Description', o.description) + sec('Services', o.services) + sec('Deliverables', o.deliverables) +
-      sec('Delivery Schedule', o.deliverySchedule) + sec('Payment Schedule', o.paymentSchedule) +
+      (o.noSchedules ? '' : sec('Delivery Schedule', o.deliverySchedule) + sec('Payment Schedule', o.paymentSchedule)) +
       sec('What MISMO Provides', o.tasksFromMismo) + sec('Agreed Modifications', o.modifications) +
       sec('Why This Order Exists', o.raisedWhy) + sec('Written Under', o.msaFlavour ? o.msaFlavour + ' Master Services Agreement' : '');
     if (!body) body = '<p style="margin:0;color:var(--ink-2)">Only the title and the figures above have been filled in so far.</p>';

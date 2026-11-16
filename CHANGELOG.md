@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-16
 
+- New Service Order: Delivery and Payment Schedules can be marked Not applicable to this order; neither prints on the order or shows on the review page, and the order shows its rate, hours and maximum fee instead [20261116b]
 - My Hours: an order's "Discard" button is now "Close Without Saving" (it only ever closed the row), and a new Clear This Row button empties a row logged by mistake; Help says how to clear a row logged in the wrong week [20261116a]
 
 ## 2026-11-09

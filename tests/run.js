@@ -383,6 +383,33 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  await check('An order can leave off the Delivery and Payment Schedules', async () => {
+    const s = await open(opts({ who: 'admin' }));
+    await wait(s, 2500);
+    const r = await s.page.evaluate(() => {
+      const P = window.MISMO_PORTAL_PARTS;
+      const F = { company: 'Northwind Facilitation LLC', standingText: '', signers: { order: { name: 'Sam Signer', title: 'Director' } },
+        mismoSigner: { name: 'Pat President', title: 'President' }, vpProduct: { name: 'Victor Vee' } };
+      const base = { id: 'x', subject: 'Sample', feeType: 'hourly', hourlyRate: 100, estimatedHours: 10, maximumFee: 1000,
+        startDate: '11/01/26', endDate: '12/31/26', services: ['a'], deliverables: ['b'],
+        deliverySchedule: 'Monthly', paymentSchedule: 'On completion' };
+      const withS = P.orderDoc(F, base), without = P.orderDoc(F, Object.assign({}, base, { noSchedules: true }));
+      return { withS: /Delivery Schedule/.test(withS) && /Payment Schedule/.test(withS),
+               without: !/Delivery Schedule/.test(without) && !/Payment Schedule/.test(without) && /Maximum Fee Allowed/.test(without),
+               old: !/noSchedules/.test(document.documentElement.innerHTML) };
+    });
+    if (!r.old) {
+      expect(r.withS, 'an order with schedules should print them');
+      expect(r.without, 'an order marked not applicable still prints a schedule, or lost its fee estimate');
+      await nav(s.page, 'New Service Order');
+      expect(!!(await s.page.$('#no-sched')), 'the New Service Order form has no schedules choice');
+      await s.page.selectOption('#no-sched', 'none'); await wait(s, 200);
+      const hidden = await s.page.evaluate(() => [...document.querySelectorAll('.no-schedf')].every(d => d.hidden));
+      expect(hidden, 'the two schedule boxes stay visible when they are not applicable');
+    }
+    noErrors(s.errs); await s.close();
+  });
+
   await check('A row can be cleared, and Close Without Saving only closes it', async () => {
     const store = mkStore();
     const key = 'so-northwind|hours/casey-c-fy2027.json';

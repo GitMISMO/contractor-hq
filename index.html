@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261109a">
+<meta name="so-version" content="20261116a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1684,6 +1684,8 @@ td.hcol .hdot{margin:0 auto}
 .rowacts .unsaved::before{content:"";width:7px;height:7px;border-radius:50%;
   background:var(--warn);flex:0 0 auto}
 .rowacts .unsaved[hidden]{display:none}
+.rowacts.hrs .unsaved{margin-right:0}
+.rowacts.hrs #ph-cancel{margin-left:auto}
 /* with nothing unsaved, the buttons still sit to the right */
 .rowacts .unsaved[hidden] + .gobtn{margin-left:auto}
 @media(max-width:480px){
@@ -6686,8 +6688,16 @@ function loadCompanyCore(slug) {
       'cover the same order, each of you needs to see how much of it is left — that is what ' +
       'stops an overrun turning up on an invoice.</p>' +
       (sent ? '' :
-        '<div class="rowacts"><span class="unsaved" id="ph-unsaved" hidden>Unsaved</span>' +
-        '<button class="gobtn ghost" type="button" id="ph-cancel">Discard</button>' +
+        /* ⚠ "Close Without Saving", not "Discard". Erin, 16 November: she
+           read Discard as "remove what I entered", clicked it on a saved row
+           and nothing changed, because all it does is close the row and forget
+           edits made since it opened. Clearing a row is its own button. */
+        '<div class="rowacts hrs">' +
+        ((Number(r.hours) || (r.thisWeek || '').trim() || (r.upcoming || '').trim() || r.health ||
+          (r['for'] && r['for'].length) || r.inFirstMonth != null)
+          ? '<button class="gobtn ghost" type="button" id="ph-clear">Clear This Row</button>' : '') +
+        '<span class="unsaved" id="ph-unsaved" hidden>Unsaved</span>' +
+        '<button class="gobtn ghost" type="button" id="ph-cancel">Close Without Saving</button>' +
         /* "Keep This Time", not "Keep This Order" — what the button keeps is the
            hours, and an order is the thing they are logged against. */
         '<button class="gobtn" type="button" id="ph-keep">Keep This Time</button></div>');
@@ -9438,6 +9448,18 @@ function loadCompanyCore(slug) {
       var can = document.getElementById('ph-cancel');
       if (can) can.addEventListener('click', function () {
         HRS.open = null; closePanel(true);
+      });
+      /* Clear This Row: empties the row in this week's draft. Like Keep This
+         Time, nothing is stored until Save Without Sending or Submit. */
+      var clr = document.getElementById('ph-clear');
+      if (clr) clr.addEventListener('click', function () {
+        $$('#panel-body .phnum, #panel-body .phnote, #panel-body .phup, #panel-body .phsplit, #panel-body .covhrs')
+          .forEach(function (el) { el.value = ''; });
+        $$('#panel-body .covwho').forEach(function (el) { el.value = ''; });
+        $$('#panel-body .phhealth').forEach(function (x) {
+          x.classList.remove('on'); x.setAttribute('aria-checked', 'false'); });
+        keepOpen(o);
+        toast('Row cleared. Press Save Without Sending to keep the change.', 'ok');
       });
       mark();
     }
@@ -14045,6 +14067,8 @@ function loadCompanyCore(slug) {
       'Write one line in <b>This Week</b>. <b>That note is the part MISMO actually reads</b> — the hours alone do not say what happened.',
       '<b>Upcoming</b> is what is next. It is how MISMO sees what is coming without having to ask.',
       'Set <b>Health</b> — Green, Yellow, Red or N/A — so anything going wrong is visible before it becomes a problem.',
+      '<b>Keep This Time</b> puts what you typed on the row. <b>Close Without Saving</b> just closes the row and forgets what you changed since you opened it.',
+      'Wrong row or wrong week? Open the row and press <b>Clear This Row</b>, then <b>Save Without Sending</b>. Nothing has gone to MISMO until you submit.',
       '<b>Save Without Sending</b> keeps it for you and sends nothing. Use it as often as you like.',
       '<b>Submit This Week</b> sends it to MISMO.']))
     + blk('If You Worked on Something Somebody Else Owns', steps([

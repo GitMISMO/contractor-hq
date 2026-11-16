@@ -383,6 +383,35 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  await check('A row can be cleared, and Close Without Saving only closes it', async () => {
+    const store = mkStore();
+    const key = 'so-northwind|hours/casey-c-fy2027.json';
+    const s = await open(opts({ who: 'casey', store }));
+    await wait(s, 2500); await nav(s.page, 'My Hours');
+    const row = '[data-hrow]';
+    await s.page.click(row); await wait(s, 500);
+    const hasClose = await s.page.$('#ph-cancel');
+    const label = hasClose ? (await s.page.textContent('#ph-cancel')).trim() : '';
+    if (label === 'Discard') { noErrors(s.errs); await s.close(); return; }   // versions before 20261116a
+    expect(label === 'Close Without Saving', 'the close button reads "' + label + '"');
+    expect(!(await s.page.$('#ph-clear')), 'an empty row should not offer Clear This Row');
+    await s.page.fill('#ph-num', '2'); await s.page.fill('#ph-note', 'Logged in the wrong week');
+    await s.page.click('#ph-keep'); await wait(s, 400);
+    await s.page.click('#h-save'); await wait(s, 1200);
+    const saved = JSON.stringify((store.S[key] || {}).drafts || {});
+    expect(/Logged in the wrong week/.test(saved), 'the row was not saved to start with');
+    await s.page.click(row); await wait(s, 500);
+    await s.page.fill('#ph-num', '5');
+    await s.page.click('#ph-cancel'); await wait(s, 900);
+    await s.page.click(row); await wait(s, 900);
+    expect(Number(await s.page.inputValue('#ph-num')) === 2, 'Close Without Saving kept an edit');
+    await s.page.click('#ph-clear'); await wait(s, 400);
+    await s.page.click('#h-save'); await wait(s, 1200);
+    const after = JSON.stringify((store.S[key] || {}).drafts || {});
+    expect(!/Logged in the wrong week/.test(after), 'Clear This Row did not empty the row');
+    noErrors(s.errs); await s.close();
+  });
+
   await check('An approved expense invoice goes to accounts payable with its PDF, Jonna copied', async () => {
     const store = mkStore();
     store.S['so-northwind|hours/casey-c-fy2027.json'] = { person: 'Casey Contractor', slug: 'casey-c', fiscalYear: 'FY 2027', weeks: [], expenses: [

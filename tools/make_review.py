@@ -254,7 +254,9 @@ __LOGO__
   function asText(v) { return Array.isArray(v) ? v.join('\n') : (v == null ? '' : String(v)); }
   function asList(s) { return String(s || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
   function editForm(o, hourly) {
-    return '<div class="ed">' + EDIT.filter(function (f) { return hourly || !f.hourly; }).map(function (f) {
+    return '<div class="ed">' + EDIT.filter(function (f) {
+      if (o.noSchedules && (f.k === 'deliverySchedule' || f.k === 'paymentSchedule')) return false;
+      return hourly || !f.hourly; }).map(function (f) {
       var lab = (!hourly && f.perLabel) || f.label, v = asText(o[f.k]), id = 'e-' + f.k;
       var input = f.area
         ? '<textarea id="' + id + '" data-k="' + f.k + '" rows="' + (f.list ? 4 : 3) + '">' + esc(v) + '</textarea>'
@@ -299,7 +301,7 @@ __LOGO__
       '<div class="tile"><b>' + esc(o.startDate || '—') + (o.endDate ? ' – ' + esc(o.endDate) : '') + '</b><span>Start to End</span></div>' +
       '</div></div>';
     var body = sec('Description', o.description) + sec('Services', o.services) + sec('Deliverables', o.deliverables) +
-      sec('Delivery Schedule', o.deliverySchedule) + sec('Payment Schedule', o.paymentSchedule) +
+      (o.noSchedules ? '' : sec('Delivery Schedule', o.deliverySchedule) + sec('Payment Schedule', o.paymentSchedule)) +
       sec('What MISMO Provides', o.tasksFromMismo) + sec('Agreed Modifications', o.modifications) +
       sec('Why This Order Exists', o.raisedWhy) + sec('Written Under', o.msaFlavour ? o.msaFlavour + ' Master Services Agreement' : '');
     if (!body) body = '<p style="margin:0;color:var(--ink-2)">Only the title and the figures above have been filled in so far.</p>';

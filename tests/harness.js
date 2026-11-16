@@ -46,6 +46,7 @@ async function open(opts) {
   const ctx = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, colorScheme: opts.dark ? 'dark' : 'light' });
   const page = await ctx.newPage();
   const errs = [];
+  const reqs = [];   // every relay path the page asked for, so a check can prove what it never asked
   page.on('pageerror', e => errs.push(String(e)));
   page.on('console', m => {
     if (m.type() !== 'error') return;
@@ -57,7 +58,7 @@ async function open(opts) {
   await ctx.route('**/*', async route => {
     const req = route.request(); const url = new URL(req.url());
     if (url.host === 'fonts.googleapis.com' || url.host === 'fonts.gstatic.com') return route.fulfill({ status: 200, body: '' });
-    if (url.origin === RELAY) return relay(route, req, url, u, store);
+    if (url.origin === RELAY) { reqs.push(decodeURIComponent(url.pathname)); return relay(route, req, url, u, store); }
     if (url.origin === ORIGIN) {
       let p = url.pathname; if (p.endsWith('/')) p += 'index.html';
       if (p === '/assets/session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'session-stub.js')) });
@@ -83,7 +84,7 @@ async function open(opts) {
   }
   const base = ORIGIN + '/service-orders/' + (opts.version ? 'releases/' + opts.version + '/' : '');
   await page.goto(base + (opts.path || ''));
-  return { browser, ctx, page, store, errs, close: () => own ? browser.close() : ctx.close() };
+  return { browser, ctx, page, store, errs, reqs, close: () => own ? browser.close() : ctx.close() };
 }
 
 /* The pretend relay: the same routes, answers and version clashes as the real one. */

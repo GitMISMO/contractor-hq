@@ -49,6 +49,28 @@ function seed() {
     S[k + '|signatures/' + slug + '.json'] = { signatures: companies[slug].orders.map(o => ({ orderId: o.id, step: 'MISMO Signer', decision: 'Approved',
       contentHash: o.contentHash, recordHash: o.recordHash, rev: 0, signedOn: '2026-10-02T00:00:00Z', by: STAFF.president.name })) };
   }
+  // Past years brought over from Smartsheet (made up). Northwind has two orders and an
+  // MSA letter; Bluebird has one order Northwind must never see. MISMO-only: an email
+  // approval for Northwind's order, and a former company.
+  const pdf = Buffer.from('%PDF-1.4\n% sample\n').toString('base64');
+  S['so-northwind|agreements/past/northwind.json'] = { imported: 'Smartsheet', records: [
+    { id: 'ss-10', section: 'order', kind: 'Service Order', title: 'FY 2026 Sample Archive Workgroup Facilitation', company: 'Northwind Facilitation LLC',
+      fy: 2026, status: 'Expired', startDate: '2025-10-01', endDate: '2026-09-30', hourlyRate: 100, estimatedHours: 10, maximumFee: 1000,
+      facilitator: 'Casey Contractor', services: ['Run the sample meetings'], deliverables: ['Sample notes'],
+      docs: [{ name: 'Northwind - FY 2026 Sample Archive.pdf', label: 'Signed document', path: 'agreements/past/files/FY2026/Northwind-FY-2026-Sample-Archive.pdf' }] },
+    { id: 'ss-11', section: 'order', kind: 'Order Modification', title: 'FY 2024 Old Sample Study', company: 'Northwind Facilitation LLC',
+      fy: 2024, status: 'Inactive', startDate: '2023-10-01', endDate: '2024-09-30', maximumFee: 500, docs: [] },
+    { id: 'ss-12', section: 'agreement', kind: 'MSA Extension Letter', title: 'FY 2025 MSA Extension Letter - General', company: 'Northwind Facilitation LLC',
+      fy: 2025, status: 'Expired', docs: [] } ], otherDocs: [] };
+  S['so-northwind|agreements/past/files/FY2026/Northwind-FY-2026-Sample-Archive.pdf'] = { __b64: pdf };
+  S['so-bluebird|agreements/past/bluebird.json'] = { imported: 'Smartsheet', records: [
+    { id: 'ss-20', section: 'order', kind: 'Service Order', title: 'FY 2025 Bluebird Secret Review', company: 'Bluebird Review Partners LLC',
+      fy: 2025, status: 'Expired', maximumFee: 900, docs: [] } ], otherDocs: [] };
+  S['team-hq|data/sopast.json'] = {
+    extra: { 'ss-10': [{ name: 'Approval email for the sample archive.pdf', label: 'Email approval', archive: 'Northwind Facilitation LLC/FY 2026/Approval email.pdf' }] },
+    records: [{ id: 'ss-30', section: 'order', kind: 'Service Order', title: 'FY 2023 Gone Company Sample Work', company: 'Gone Sample Co',
+      fy: 2023, status: 'Expired', maximumFee: 300, former: true, docs: [{ name: 'Gone Sample Co - work.pdf', label: 'Signed document', archive: 'Gone Sample Co/FY 2023/work.pdf' }] }],
+    otherDocs: [] };
   S['team-hq|data/people.json'] = { docs: {
     p1: { id: 'p1', name: STAFF.admin.name, email: STAFF.admin.email },
     p2: { id: 'p2', name: STAFF.reviewer.name, email: STAFF.reviewer.email } } };

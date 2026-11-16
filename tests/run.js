@@ -468,6 +468,78 @@ function tracked(dir) {
     expect(/^Invoice to Process/.test(ap.title || ''), 'the accounts payable email is not titled Invoice to Process');
   });
 
+  /* Service Orders as one page, and the past years from Smartsheet (16 Nov 2026).
+     Versions before 20261116c do not have it, so these pass as not applicable there. */
+  const hasPast = read(path.join(DIR, 'index.html')).indexOf('function joinNoRepeat') >= 0;
+
+  await check('A new order title never doubles a word where its pieces meet', async () => {
+    if (!hasPast) return;
+    const src = read(path.join(DIR, 'index.html'));
+    const m = /function joinNoRepeat\(a, b\) \{[\s\S]*?\n  \}\n/.exec(src);
+    expect(m, 'joinNoRepeat is missing');
+    const join = vm.runInNewContext('(' + m[0].replace(/^function joinNoRepeat/, 'function') + ')');
+    const t = (a, b, want) => { const got = join(a, b); expect(got === want, JSON.stringify([a, b]) + ' gave "' + got + '", wanted "' + want + '"'); };
+    t('FY 2027 Architecture Workgroup', 'Workgroup Facilitation', 'FY 2027 Architecture Workgroup Facilitation');
+    t('FY 2027 ', 'Sample Workgroup', 'FY 2027 Sample Workgroup');
+    t('FY 2027 Servicing Community of Practice', 'Community of Practice Facilitation', 'FY 2027 Servicing Community of Practice Facilitation');
+    t('FY 2027 Sample', '', 'FY 2027 Sample');
+    t('', 'Sample', 'Sample');
+  });
+
+  await check('Staff: one Service Orders page with every order, past years read only', async () => {
+    if (!hasPast) return;
+    const s = await open(opts({ who: 'admin' }));
+    await wait(s, 4000);
+    const rail = await s.page.evaluate(() => [...document.querySelectorAll('#rail-nav button')].map(b => b.textContent.trim().replace(/\d+$/, '').trim()));
+    expect(rail.includes('Service Orders') && rail.includes('Agreements'), 'the menu has no Service Orders or Agreements: ' + rail.join(', '));
+    expect(!rail.some(n => /Revise an Order|End a Service Order|Executed Documents/.test(n)), 'the old sections are still in the menu');
+    await nav(s.page, 'Service Orders'); await wait(s, 800);
+    const sec = '.psec[data-name="Service Orders"]';
+    const count = sel => s.page.evaluate(q => [...document.querySelectorAll(q)].filter(r => !r.hidden).length, sel);
+    const thisYear = await count(sec + ' .sorow');
+    expect(thisYear >= 3, 'this year shows ' + thisYear + ' orders, expected the three current ones');
+    expect(await count(sec + ' .sorow[data-st="past"]') === 0, 'past years show before Every Year is chosen');
+    await s.page.selectOption(sec + ' .so-fy', ''); await wait(s, 300);
+    const titles = await s.page.evaluate(q => [...document.querySelectorAll(q)].filter(r => !r.hidden).map(r => r.textContent), sec + ' .sorow');
+    for (const want of ['FY 2026 Sample Archive', 'FY 2025 Bluebird Secret Review', 'FY 2023 Gone Company Sample Work'])
+      expect(titles.some(t => t.indexOf(want) >= 0), 'Every Year is missing "' + want + '"');
+    expect(!titles.some(t => t.indexOf('MSA Extension Letter') >= 0), 'an agreement is listed with the orders');
+    await s.page.fill(sec + ' .so-q', 'archive casey'); await wait(s, 300);
+    expect(await count(sec + ' .sorow') === 1, 'searching by title and facilitator did not narrow to one');
+    await s.page.click(sec + ' .sorow:not([hidden]) .hqrow'); await wait(s, 500);
+    const panel = await s.page.evaluate(() => document.getElementById('panel-body').textContent);
+    expect(/Imported from Smartsheet/.test(panel) && /read only/i.test(panel), 'the past order does not say it is read only');
+    expect(/MISMO Only/.test(panel) && /Approval email/.test(panel), 'staff do not see the email approval');
+    expect(!/End This Order|Save the Revision/.test(panel), 'a past order can be revised or ended');
+    const btns = await s.page.evaluate(() => [...document.querySelectorAll('#panel-body .dlfile, #panel-body .vwfile')].length);
+    expect(btns === 2, 'the signed copy has no View and Download');
+    await s.page.click('#panel-x'); await wait(s, 300);
+    await s.page.fill(sec + ' .so-q', ''); await s.page.selectOption(sec + ' .so-fy', ''); await s.page.selectOption(sec + ' .so-st', 'executed'); await wait(s, 300);
+    await s.page.click(sec + ' .sorow:not([hidden]) .hqrow'); await wait(s, 500);
+    const ex = await s.page.evaluate(() => document.getElementById('panel-body').textContent);
+    expect(/End This Order/.test(ex), 'an executed order cannot be ended from the Service Orders page');
+    await nav(s.page, 'Agreements'); await wait(s, 400);
+    const ag = await s.page.evaluate(() => document.querySelector('.psec[data-name="Agreements"]').textContent);
+    expect(/Earlier Agreements/.test(ag) && /FY 2025 MSA Extension Letter/.test(ag), 'past agreements are not under Agreements');
+    noErrors(s.errs); await s.close();
+  });
+
+  await check('A company sees only its own past years, and never an email approval', async () => {
+    if (!hasPast) return;
+    const s = await open(opts({ who: 'sam' }));
+    await wait(s, 4000); await nav(s.page, 'My Service Orders'); await wait(s, 600);
+    await s.page.click('.psec[data-name="My Service Orders"] button[data-sotab="past"]'); await wait(s, 300);
+    const txt = await s.page.evaluate(() => document.querySelector('.psec[data-name="My Service Orders"] div.sotab[data-sotab="past"]').textContent);
+    expect(/FY 2026 Sample Archive/.test(txt) && /FY 2024 Old Sample Study/.test(txt), 'their own past orders are missing');
+    expect(!/Bluebird|Gone Sample/.test(txt), 'another company’s past order is showing');
+    await s.page.click('.psec[data-name="My Service Orders"] div.sotab[data-sotab="past"] .sorow .hqrow'); await wait(s, 500);
+    const panel = await s.page.evaluate(() => document.getElementById('panel-body').textContent);
+    expect(!/MISMO Only|Approval email|Q Drive/.test(panel), 'a company can see MISMO-only material');
+    const asked = s.reqs ? s.reqs.filter(u => /sopast|bluebird/.test(u)) : [];
+    expect(!asked.length, 'the company screen asked for MISMO-only or another company’s data: ' + asked.join(', '));
+    noErrors(s.errs); await s.close();
+  });
+
   await check('The Expenses phone app opens on a phone', async () => {
     const s = await open(opts({ who: 'casey', path: '?app=expenses', viewport: { width: 390, height: 844 } }));
     await wait(s, 3000);

@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-17
 
+- Expenses follow MBA's updated meal guidance: $25 breakfast, $40 lunch, $60 dinner, $15 snacks, no more than $140 of meals per person per day; anything over $15 now needs a receipt (meals and everything else, mileage aside), and without one no more than $15 can be claimed [20261117b]
 - MISMO Only notes and Help give the full Q Drive location of the Service Orders Archive: MISMO › Active Documents › Contracts › Consulting Agreements › Service Orders Archive [20261117a]
 
 ## 2026-11-16

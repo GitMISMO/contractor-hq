@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261116c">
+<meta name="so-version" content="20261117a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -5183,7 +5183,7 @@ function reviewsTable(list, C) {
      ⚠ The email approvals (Seth's "approved", hour increases agreed by email)
      and the thirteen companies MISMO no longer works with are MISMO-only. They
      are indexed in Team HQ's data as 'sopast' and the files are on the Q Drive
-     in the Service Orders Archive. None of it is ever requested on a company's
+     in MISMO › Active Documents › Contracts › Consulting Agreements › Service Orders Archive. None of it is ever requested on a company's
      screen. */
   var PAST = {};
   var PAST_MISMO = null;
@@ -5254,7 +5254,8 @@ function reviewsTable(list, C) {
           esc(String(d.archive || '').replace(/\//g, ' › ')) + '</small></span></div>';
       }).join('') + '</div>' +
         '<p class="fineprint">Email approvals and the former companies’ files are kept on the ' +
-        'Q Drive only. Companies never see this list.</p>';
+        'Q Drive only, in Q Drive › MISMO › Active Documents › Contracts › Consulting Agreements › ' +
+        'Service Orders Archive. Companies never see this list.</p>';
     }
     if (!h) h = '<p class="fineprint">No signed copy came over from Smartsheet for this one. ' +
       'The details above are the record.</p>';
@@ -14831,7 +14832,7 @@ function loadCompanyCore(slug) {
         '<b>Service Orders</b> lists every order, this year and every year before it, grouped by company.',
         'Search by title, company, facilitator or kind. Pick a company, a fiscal year (it opens on this year) or a status: <b>In Progress</b>, <b>Executed</b>, <b>Ended</b> or <b>Past Years</b>.',
         'Open an order to act on it. <b>Not executed yet:</b> change its terms and save the revision. <b>Executed:</b> set the last day it runs and why, and press <b>End This Order</b>. Hours already logged stay billable.',
-        '<b>Past Years</b> are the Smartsheet records, read only, with the signed copies to view or download. <b>MISMO Only</b> lists the email approvals and where they are on the Q Drive.',
+        '<b>Past Years</b> are the Smartsheet records, read only, with the signed copies to view or download. <b>MISMO Only</b> lists the email approvals and where they are on the Q Drive (MISMO › Active Documents › Contracts › Consulting Agreements › Service Orders Archive).',
         'Each company sees only its own past orders, under <b>My Service Orders › Past Years</b>. Email approvals and the former companies never show to anybody outside MISMO.']))
       + blk('When a Review Comes Back', steps([
         'It appears in <b>Needs You</b> with what they said.',

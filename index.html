@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261117a">
+<meta name="so-version" content="20261117b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -4292,13 +4292,20 @@ window.H = (function () {
     'Meal Trvl - Breakfast', 'Meal Trvl - Lunch', 'Meal Trvl - Dinner',
     'Meal Trvl - Snack', 'Membership Dues', 'Metro / Bus', 'Mileage', 'Parking',
     'Taxi/Uber/Lyft', 'Tolls', 'Train'];
-  var MEAL_CAP = { 'Meal Trvl - Breakfast': 20, 'Meal Trvl - Lunch': 35,
-                   'Meal Trvl - Dinner': 50, 'Meal Trvl - Snack': 10 };
-  var DAILY_MEAL_CAP = 115;
-  var RECEIPT_OVER = 25;
-  var MEAL_RECEIPT_OVER = 15;
+  /* ⚠ MBA's updated meal guidance (given November 17, 2026; replaces the
+     January 2019 numbers): breakfast $25, lunch $40, dinner $60, snacks $15,
+     all meals together no more than $140 per person per day, and NOTHING
+     without a receipt can exceed $15 — meals and every other charge alike.
+     Mileage is worked out from the miles driven, so it never has a receipt
+     and is the one category the receipt rule does not touch. */
+  var MEAL_CAP = { 'Meal Trvl - Breakfast': 25, 'Meal Trvl - Lunch': 40,
+                   'Meal Trvl - Dinner': 60, 'Meal Trvl - Snack': 15 };
+  var DAILY_MEAL_CAP = 140;
+  var RECEIPT_OVER = 15;
+  var MEAL_RECEIPT_OVER = RECEIPT_OVER;
 
   function isMeal(c) { return String(c || '').indexOf('Meal Trvl') === 0; }
+  function receiptExempt(e) { return String((e && e.cat) || '') === 'Mileage'; }
 
   /* Every policy check on one expense. `others` is the rest of that person's
      expenses, needed for the daily meal cap, which is a per-DAY total and not
@@ -4315,8 +4322,8 @@ window.H = (function () {
         m: 'Over the ' + e.cat.replace('Meal Trvl - ', '').toLowerCase() + ' guideline of ' +
            money(cap) + '. Say why in the description.' });
       if (amt > MEAL_RECEIPT_OVER && !e.receipt) out.push({ lvl: 'bad',
-        m: 'Meals over ' + money(MEAL_RECEIPT_OVER) + ' need a receipt. Without one this caps at ' +
-           money(MEAL_RECEIPT_OVER) + '.' });
+        m: 'Meals over ' + money(MEAL_RECEIPT_OVER) + ' need a receipt. Without one, no more than ' +
+           money(MEAL_RECEIPT_OVER) + ' can be claimed.' });
       /* ⚠ The line being edited is swapped in rather than counted twice — its
          old amount is still in the stored list. */
       var day = (others || []).filter(function (x) {
@@ -4326,9 +4333,10 @@ window.H = (function () {
       if (tot > DAILY_MEAL_CAP) out.push({ lvl: 'warn',
         m: 'Meals for this day total ' + money(tot) + ', over the ' + money(DAILY_MEAL_CAP) +
            ' daily cap.' });
-    } else if (amt > RECEIPT_OVER && !e.receipt) {
+    } else if (amt > RECEIPT_OVER && !e.receipt && !receiptExempt(e)) {
       out.push({ lvl: 'bad',
-        m: 'Charges over ' + money(RECEIPT_OVER) + ' need an original paid receipt.' });
+        m: 'Anything over ' + money(RECEIPT_OVER) + ' needs an original paid receipt. Without one, ' +
+           'no more than ' + money(RECEIPT_OVER) + ' can be claimed.' });
     }
     if (e.receipt && e.rcptAmt && Math.abs(Number(e.rcptAmt) - amt) > 0.009)
       out.push({ lvl: 'warn',
@@ -4345,7 +4353,7 @@ window.H = (function () {
      unrecoverable line on an invoice. */
   function expenseAllowed(e) {
     var amt = Number(e && e.amt) || 0;
-    if (isMeal(e.cat) && amt > MEAL_RECEIPT_OVER && !e.receipt) return MEAL_RECEIPT_OVER;
+    if (amt > RECEIPT_OVER && !e.receipt && !receiptExempt(e)) return RECEIPT_OVER;
     return amt;
   }
 
@@ -7312,7 +7320,7 @@ function loadCompanyCore(slug) {
   function xpNoReceipt(e) {
     if (!e || e.receipt) return false;
     var amt = Number(e.amt) || 0;
-    return isMeal(e.cat) ? amt > MEAL_RECEIPT_OVER : amt > RECEIPT_OVER;
+    return !receiptExempt(e) && amt > RECEIPT_OVER;
   }
   /* Expenses submitted before reports existed have no reportId: each day's
      submission is treated as one report, which is what it was. */
@@ -7440,9 +7448,10 @@ function loadCompanyCore(slug) {
       '<p style="margin:6px 0 0;color:#456179">Send one expense invoice to MISMO for this report, separate from the hours invoice. ' +
       'It is checked against this total to the cent; quote report ' + esc(r.id) + ' on it.</p></div></div>' +
       '<div class="sign"><div>Submitted by ' + esc(info.person) + '</div><div>Reviewed for ' + esc(info.company) + '</div></div>' +
-      '<p class="foot">Reimbursed under the MBA travel and expense policy: receipts over ' + money(RECEIPT_OVER) +
-      ', and over ' + money(MEAL_RECEIPT_OVER) + ' on a meal (a meal over that without one is repaid at ' + money(MEAL_RECEIPT_OVER) +
-      '). Printed ' + esc(stamp(new Date().toISOString())) + ' from the MISMO Service Orders portal.</p>' +
+      '<p class="foot">Reimbursed under the MBA travel and expense policy: a receipt for anything over ' + money(RECEIPT_OVER) +
+      ' (nothing without one is repaid above ' + money(RECEIPT_OVER) + '); meals up to ' + money(MEAL_CAP['Meal Trvl - Breakfast']) +
+      ' breakfast, ' + money(MEAL_CAP['Meal Trvl - Lunch']) + ' lunch, ' + money(MEAL_CAP['Meal Trvl - Dinner']) + ' dinner, ' +
+      money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks and ' + money(DAILY_MEAL_CAP) + ' a day in all. Printed ' + esc(stamp(new Date().toISOString())) + ' from the MISMO Service Orders portal.</p>' +
       (shots ? '<div class="shots"><h1>Receipts</h1>' + shots + '</div>' : '') +
       '</body></html>';
   }
@@ -7506,7 +7515,7 @@ function loadCompanyCore(slug) {
     var tiles = '<div class="headline xp-head"><div class="tiles">' +
       tile(money(openTot), 'Not Yet Submitted', open.length + (open.length === 1 ? ' expense' : ' expenses') + ' to submit') +
       tile(String(needs), 'Need Details', needs ? 'open one to finish it' : 'nothing is missing', needs) +
-      tile(String(noRcpt), 'Missing a Receipt', 'over ' + money(RECEIPT_OVER) + ', or a meal over ' + money(MEAL_RECEIPT_OVER), noRcpt) +
+      tile(String(noRcpt), 'Missing a Receipt', 'anything over ' + money(RECEIPT_OVER), noRcpt) +
       tile(money(yearTot), 'Submitted This Year', reps.length + (reps.length === 1 ? ' expense report' : ' expense reports')) +
       '</div></div>';
 
@@ -7575,9 +7584,11 @@ function loadCompanyCore(slug) {
 
     return tiles + '<div class="xp-top">' + snap + mail + '</div>' + bar + openHtml + repHtml +
       '<p class="fineprint">MISMO reimburses under the <b>MBA travel and expense policy</b>. ' +
-      'Receipts are needed over ' + money(RECEIPT_OVER) + ', and over ' + money(MEAL_RECEIPT_OVER) +
-      ' on a meal — a meal over that without one is repaid at ' + money(MEAL_RECEIPT_OVER) +
-      ' rather than refused.</p>';
+      'A receipt is needed for anything over ' + money(RECEIPT_OVER) + '; without one, no more than ' +
+      money(RECEIPT_OVER) + ' can be claimed. Meals: up to ' + money(MEAL_CAP['Meal Trvl - Breakfast']) +
+      ' breakfast, ' + money(MEAL_CAP['Meal Trvl - Lunch']) + ' lunch, ' + money(MEAL_CAP['Meal Trvl - Dinner']) +
+      ' dinner and ' + money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks, and ' + money(DAILY_MEAL_CAP) +
+      ' a day in all.</p>';
   }
 
   function expensePanel(e, all, fresh) {
@@ -14640,8 +14651,9 @@ function loadCompanyCore(slug) {
       'Check what it filled. It only ever fills a field you have left empty; anything you typed is left alone.',
       '<b>Trip or Reason</b> fills itself from the date — January is the Winter Summit, June is Spring, September is Fall, and the month before a summit counts as that summit. Change it if it is wrong.']))
     + blk('The Receipt Rules', steps([
-      'A receipt is required for anything over <b>$25</b>, and for any meal over <b>$15</b>.',
-      'Meals are capped at <b>$115</b> a day across breakfast, lunch and dinner together.',
+      'A receipt is required for <b>anything over $15</b>, meals and everything else. Without one, no more than <b>$15</b> can be claimed. (Mileage is the exception: it is worked out from the miles.)',
+      'Meal guidelines: <b>$25</b> breakfast, <b>$40</b> lunch, <b>$60</b> dinner, <b>$15</b> snacks.',
+      'All meals together can come to no more than <b>$140</b> per person per day.',
       'These are <b>MBA’s travel and expense policy</b>, not the portal’s — they are the same rules MISMO staff follow.',
       'The portal tells you when something is over a cap <b>before</b> you submit, not after.']))
     + blk('Submitting, and the Expense Invoice', steps([

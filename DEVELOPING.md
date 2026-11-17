@@ -77,7 +77,7 @@ figures, a token or a password here. The checks look for keys and tokens on ever
 | `invoices/<slug>.json`, `invoices/files/<slug>-<id>.pdf` | Invoices and expense invoices with their PDFs | The company's signer; Jonna's decisions |
 | `agreements/<slug>.json`, `agreements/<slug>/<msa>-fy2027.pdf` | Executed MSA extensions from DocuSign | Jonna |
 | `agreements/past/<slug>.json`, `agreements/past/files/FY<year>/*` | Past years brought over from Smartsheet (before FY 2027): the company's own records and signed copies, read only. No email approvals here | Loaded once by Jonna (16 Nov 2026) |
-| Team HQ data `sopast` (MISMO only) | Index of the Smartsheet email approvals and the 13 former companies' records, with where each file is on the Q Drive (Service Orders Archive › Company › FY) | Loaded once by Jonna |
+| Team HQ data `sopast` (MISMO only) | Index of the Smartsheet email approvals and the 13 former companies' records, with where each file is on the Q Drive (MISMO › Active Documents › Contracts › Consulting Agreements › Service Orders Archive › Company › FY) | Loaded once by Jonna |
 
 - **In Team HQ's data** (`team-hq-data`, relay key `team-hq`, records reached with `readData`/`updateData`):
   `soreviews` (staff reviews of new orders), `sotemplates` (saved New Service Order templates),

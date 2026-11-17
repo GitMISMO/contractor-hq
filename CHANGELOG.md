@@ -4,6 +4,10 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-17
+
+- MISMO Only notes and Help give the full Q Drive location of the Service Orders Archive: MISMO › Active Documents › Contracts › Consulting Agreements › Service Orders Archive [20261117a]
+
 ## 2026-11-16
 
 - Service Orders is one page: Revise an Order, End a Service Order and the order half of Executed Documents are gone. Every order, this year and past years, with search (title, company, facilitator, kind), filters (company, fiscal year opening on this year, status), grouped by company with a count and the total; open an order to revise it (not executed), end it (executed) or read it (past). Executed Documents is now Agreements, with earlier agreements underneath [20261116c]

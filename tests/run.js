@@ -486,6 +486,36 @@ function tracked(dir) {
     t('', 'Sample', 'Sample');
   });
 
+  /* MBA's updated meal guidance (17 Nov 2026). Versions before 20261117b use the 2019
+     numbers, so this passes as not applicable there. */
+  await check('Expenses follow the updated meal guidance and the $15 no-receipt rule', async () => {
+    const src = read(path.join(DIR, 'index.html'));
+    if (src.indexOf('function receiptExempt') < 0) return;
+    const m = /  var MEAL_CAP = [\s\S]*?\n  function expenseAllowed\(e\) \{[\s\S]*?\n  \}\n/.exec(src);
+    expect(m, 'the expense rules are missing');
+    const P = vm.runInNewContext('var money = function (n) { return "$" + Number(n).toFixed(2); };' + m[0] +
+      ';({ MEAL_CAP: MEAL_CAP, DAILY_MEAL_CAP: DAILY_MEAL_CAP, check: checkExpense, allowed: expenseAllowed })');
+    const caps = P.MEAL_CAP;
+    expect(caps['Meal Trvl - Breakfast'] === 25 && caps['Meal Trvl - Lunch'] === 40 &&
+      caps['Meal Trvl - Dinner'] === 60 && caps['Meal Trvl - Snack'] === 15, 'meal guidelines are not 25 / 40 / 60 / 15');
+    expect(P.DAILY_MEAL_CAP === 140, 'the daily meal cap is not $140');
+    const ex = (cat, amt, receipt) => ({ id: 'e' + Math.random(), date: '11/02/26', cat, amt, receipt: !!receipt });
+    const bad = (e, others) => P.check(e, others || []).some(x => x.lvl === 'bad');
+    expect(P.allowed(ex('Taxi/Uber/Lyft', 22)) === 15, 'a $22 taxi with no receipt should count as $15');
+    expect(bad(ex('Taxi/Uber/Lyft', 22)), 'a $22 taxi with no receipt should be flagged');
+    expect(!bad(ex('Taxi/Uber/Lyft', 15)), 'a $15 taxi needs no receipt');
+    expect(P.allowed(ex('Taxi/Uber/Lyft', 22, true)) === 22, 'a $22 taxi with a receipt counts in full');
+    expect(P.allowed(ex('Meal Trvl - Lunch', 30)) === 15 && bad(ex('Meal Trvl - Lunch', 30)), 'a $30 lunch with no receipt should be flagged and count as $15');
+    expect(P.allowed(ex('Mileage', 48.5)) === 48.5 && !bad(ex('Mileage', 48.5)), 'mileage never needs a receipt');
+    expect(P.check(ex('Meal Trvl - Dinner', 60, true), []).length === 0, 'a $60 dinner with a receipt is within the guideline');
+    expect(P.check(ex('Meal Trvl - Dinner', 61, true), []).some(x => /guideline/.test(x.m)), 'a $61 dinner is over the guideline');
+    const day = [ex('Meal Trvl - Breakfast', 25, true), ex('Meal Trvl - Lunch', 40, true)];
+    expect(!P.check(ex('Meal Trvl - Dinner', 60, true), day).some(x => /daily cap/.test(x.m)), '$125 of meals in a day is within $140');
+    const full = day.concat([ex('Meal Trvl - Snack', 15, true)]);
+    expect(!P.check(ex('Meal Trvl - Dinner', 60, true), full).some(x => /daily cap/.test(x.m)), 'exactly $140 of meals in a day is within the cap');
+    expect(P.check(ex('Meal Trvl - Dinner', 61, true), full).some(x => /daily cap/.test(x.m)), '$141 of meals in a day should warn');
+  });
+
   await check('Staff: one Service Orders page with every order, past years read only', async () => {
     if (!hasPast) return;
     const s = await open(opts({ who: 'admin' }));

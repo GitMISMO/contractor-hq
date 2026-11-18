@@ -5034,6 +5034,14 @@ function reviewsEditor(C, iv) {
   if (!iv || iv.kind === 'expenses' || !firmPaidPerReview(C)) return '';
   if ((iv.state || 'submitted') === 'takenback') return '';
   var tag = C.slug + '|' + iv.id;
+  /* Already recorded: folded away, so a sent invoice is not a long list every time. */
+  if ((iv.reviews || []).length && !reviewsEditor.open) {
+    reviewsEditor.open = true;
+    var inner = reviewsEditor(C, iv);
+    reviewsEditor.open = false;
+    return '<details class="rvedit"><summary class="fineprint" style="cursor:pointer;margin:10px 0">' +
+      '<b>Change the certifications recorded on this invoice</b></summary>' + inner + '</details>';
+  }
   var head = '<h4 class="subh">Record the Certifications This Invoice Bills</h4>';
   if (!(C.reviewsFile && Array.isArray(C.reviewsFile.engagements))) {
     return head + '<div class="note">The firm’s certifications could not be read with this ' +

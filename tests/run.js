@@ -516,6 +516,41 @@ function tracked(dir) {
     expect(P.check(ex('Meal Trvl - Dinner', 61, true), full).some(x => /daily cap/.test(x.m)), '$141 of meals in a day should warn');
   });
 
+  /* Certifications recorded on assessor invoices, for the CMS (18 Nov 2026). Versions
+     before 20261118a do not have it, so this passes as not applicable there. */
+  await check('An assessor invoice records the certifications it bills, for the CMS', async () => {
+    const src = read(path.join(DIR, 'index.html'));
+    if (src.indexOf('function reviewsMissing') < 0) return;
+    const m = /var REVIEW_FINISHED = [\s\S]*?\nfunction reviewsTable\(/.exec(src);
+    expect(m, 'the certification-review code is missing');
+    const P = vm.runInNewContext(
+      'var INV = {}; function perReviewOrder(o) { return !!(o && (o.source === "certification" || o.feeType === "perReview")); }' +
+      'function esc(s) { return String(s == null ? "" : s); } function money(n) { return "$" + Number(n).toFixed(2); }' +
+      m[0].replace(/\nfunction reviewsTable\($/, '\n') +
+      ';({ missing: reviewsMissing, choices: reviewChoices, editor: reviewsEditor })');
+    const F = { orders: [{ id: 'o-1', subject: 'FY 2027 RON Renewal Assessment and Certification Reviews', source: 'certification' }] };
+    const eng = [
+      { row: 501, kind: 'renewal', renewalNumber: 2, org: 'Sample Notary Co', program: 'RON', product: 'Sample', state: 'Certified', assessorFee: 2000 },
+      { row: 502, kind: 'renewal', renewalNumber: 1, org: 'Example Sign LLC', program: 'RON', product: 'Example', state: 'ArtifactReview', assessorFee: null },
+      { row: 503, kind: 'initial', renewalNumber: null, org: 'Demo eClose', program: 'RON', product: 'Demo', state: 'Certified', assessorFee: 4000 }];
+    const billedElsewhere = { id: 'a', number: 'X1', state: 'sent', total: 4000, lines: [], reviews: [{ key: '503|initial|', row: 503 }] };
+    const iv = { id: 'b', number: 'X2', state: 'sent', total: 4000, lines: [], reviews: [] };
+    const C = { slug: 'sample', F, reviewsFile: { engagements: eng }, invoices: [billedElsewhere, iv] };
+    expect(P.missing(C, iv), 'a reviews-only invoice with no certifications should read as missing them');
+    const ch = P.choices(C, iv).map(r => r.key);
+    expect(ch.join(',') === '501|renewal|2,502|renewal|1', 'choices should be every engagement not billed elsewhere, any state: ' + ch.join(','));
+    expect(P.choices(C, iv)[0].orderId === 'o-1' && P.choices(C, iv)[0].fee === 2000, 'a choice carries its order and the CMS fee');
+    const done = Object.assign({}, iv, { reviews: [{ key: '502|renewal|1', row: 502, kind: 'renewal', renewalNumber: 1, fee: 2000 }] });
+    expect(!P.missing(C, done), 'an invoice with a certification recorded is not missing them');
+    expect(P.choices(Object.assign({}, C, { invoices: [billedElsewhere, done] }), done).filter(r => r.on).length === 1, 'the recorded one shows ticked');
+    const hoursOnly = { id: 'c', total: 300, lines: [{ amount: 300 }], reviews: [] };
+    expect(!P.missing(C, hoursOnly), 'an invoice that is only its hours bills no certifications');
+    expect(!P.missing({ slug: 'x', F: { orders: [{ id: 'h', feeType: 'Hourly' }] } }, iv), 'a firm not paid per review is never asked');
+    expect(/data-ivrvsave/.test(P.editor(C, iv)), 'MISMO gets a Save button for the certifications');
+    expect(src.indexOf('if (reviewsMissing(c.C, c.iv))') > 0, 'approving must refuse an invoice that bills certifications with none recorded');
+    expect(/reviews: \(exp\.reviews \|\| \[\]\)\.map[\s\S]{0,400}key: r\.key, row: r\.row[\s\S]{0,200}kind: r\.kind, renewalNumber: r\.renewalNumber/.test(src), 'the firm-side record keeps the field names the CMS reads');
+  });
+
   await check('Staff: one Service Orders page with every order, past years read only', async () => {
     if (!hasPast) return;
     const s = await open(opts({ who: 'admin' }));

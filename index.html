@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261117b">
+<meta name="so-version" content="20261118a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -4963,6 +4963,115 @@ function reviewsBlock(C, open, exp) {
     '<th class="hide-narrow"></th><th class="n">' + money((exp && exp.reviewsTotal) || 0) +
     '</th></tr></tfoot></table></div>';
 }
+/* =========================================================================
+ * CERTIFICATIONS RECORDED ON AN INVOICE BY MISMO — Jonna, 18 November 2026
+ *
+ * The Certification Management System reads each assessor firm's invoices
+ * (invoices/<slug>.json, read only) and matches every certification to the
+ * invoice that billed it through `reviews` (row, kind, renewalNumber). It
+ * fills the Assessor Invoice column on Certification Completions, which is
+ * Accounting's report. An invoice that bills certifications with nothing in
+ * `reviews` leaves those certifications looking unbilled.
+ *
+ * The firm's own invoice screen records them when its sign-in can read the
+ * firm's engagements. When it cannot (no assessor key, a failed read), or the
+ * firm bills a certification before the CMS shows it finished, MISMO records
+ * them here, from the PDF. And an invoice that charges more than its hours
+ * from a firm paid per review cannot be approved until they are recorded.
+ *
+ * ⚠ FIELD NAMES ARE READ BY THE CMS: number, date, period, state, total and
+ *   reviews[].key/row/kind/renewalNumber/org/program/product/fee. Add fields
+ *   if needed; never rename or remove one. A taken-back invoice is ignored.
+ * ======================================================================= */
+function firmPaidPerReview(C) {
+  return ((C && C.F && C.F.orders) || []).some(function (o) { return perReviewOrder(o); });
+}
+function invoiceHoursTotal(iv) {
+  return Math.round(((iv && iv.lines) || []).reduce(function (a, l) {
+    return a + (Number(l.amount) || 0); }, 0) * 100) / 100;
+}
+/* Charges certification work (more than its hours) but records none. */
+function reviewsMissing(C, iv) {
+  if (!iv || iv.kind === 'expenses' || !firmPaidPerReview(C)) return false;
+  if ((iv.reviews || []).length) return false;
+  return Number(iv.total || 0) - invoiceHoursTotal(iv) > 0.005;
+}
+/* Every certification this invoice could carry: the ones on it already, and
+   every engagement of the firm's not billed on another invoice. ⚠ Any state,
+   not only finished ones — a firm sometimes bills a review before the CMS
+   shows it finished, and the PDF is the document of record. */
+function reviewChoices(C, iv) {
+  var eng = (C && C.reviewsFile && C.reviewsFile.engagements) || [];
+  var others = reviewsBilled((C.invoices || []).filter(function (x) { return x.id !== iv.id; }));
+  var prior = REVIEWS_BILLED_BEFORE[C.slug] || {};
+  var mine = {};
+  (iv.reviews || []).forEach(function (r) { if (r && r.key) mine[r.key] = r; });
+  var seen = {};
+  var out = eng.filter(function (e) {
+    var k = reviewKey(e);
+    return mine[k] || (!others[k] && !prior[k]);
+  }).map(function (e) {
+    var k = reviewKey(e); seen[k] = 1;
+    var o = reviewOrderFor(C.F || {}, e);
+    var cms = (e.assessorFee == null || e.assessorFee === '') ? null : Number(e.assessorFee);
+    var had = mine[k];
+    return { key: k, row: e.row, org: e.org || '', program: e.program || '',
+      product: e.product || '', kind: e.kind || '',
+      renewalNumber: e.renewalNumber == null ? null : e.renewalNumber,
+      state: e.state || '', stateLabel: e.stateLabel || e.state || '',
+      fee: had ? (had.fee == null ? null : Number(had.fee)) : (cms != null && isFinite(cms) ? cms : null),
+      orderId: o ? o.id : (had ? had.orderId || null : null),
+      subject: o ? (o.subject || '') : (had ? had.subject || '' : ''), on: !!had };
+  });
+  /* One on the invoice that the engagements file no longer lists stays listed. */
+  (iv.reviews || []).forEach(function (r) {
+    if (r && r.key && !seen[r.key]) out.push(Object.assign({}, r, { stateLabel: r.state || '', on: true }));
+  });
+  return out.sort(function (a, b) { return (Number(a.row) || 0) - (Number(b.row) || 0); });
+}
+/* MISMO's editor for the certifications an invoice bills. */
+function reviewsEditor(C, iv) {
+  if (!iv || iv.kind === 'expenses' || !firmPaidPerReview(C)) return '';
+  if ((iv.state || 'submitted') === 'takenback') return '';
+  var tag = C.slug + '|' + iv.id;
+  /* Already recorded: folded away, so a sent invoice is not a long list every time. */
+  if ((iv.reviews || []).length && !reviewsEditor.open) {
+    reviewsEditor.open = true;
+    var inner = reviewsEditor(C, iv);
+    reviewsEditor.open = false;
+    return '<details class="rvedit"><summary class="fineprint" style="cursor:pointer;margin:10px 0">' +
+      '<b>Change the certifications recorded on this invoice</b></summary>' + inner + '</details>';
+  }
+  var head = '<h4 class="subh">Record the Certifications This Invoice Bills</h4>';
+  if (!(C.reviewsFile && Array.isArray(C.reviewsFile.engagements))) {
+    return head + '<div class="note">The firm’s certifications could not be read with this ' +
+      'sign-in, so they cannot be recorded here yet.' +
+      (C.reviewsError ? ' ' + esc(C.reviewsError) : '') + '</div>';
+  }
+  var list = reviewChoices(C, iv);
+  if (!list.length) return head + '<p class="empty">No certifications of this firm’s are ' +
+    'waiting to be billed.</p>';
+  return head +
+    '<p class="fineprint">Tick each certification listed on their PDF. This is what the ' +
+    'Certification Management System reads to show the invoice on Certification Completions. ' +
+    'The fee is what MISMO pays for that review; change it if the PDF says otherwise.</p>' +
+    '<div class="tbl"><table><thead><tr><th>Bills</th><th>Company</th><th>Certification</th>' +
+    '<th>Review</th><th class="hide-narrow">Where It Is</th><th class="n">Fee</th></tr></thead><tbody>' +
+    list.map(function (r) {
+      return '<tr><td><input type="checkbox" data-ivrv="' + esc(tag) + '" data-k="' + esc(r.key) + '"' +
+        (r.on ? ' checked' : '') + ' aria-label="This invoice bills it"></td>' +
+        '<td>' + esc(r.org) + '</td><td>' + esc(r.program) +
+        (r.product ? ' <span class="fineprint">' + esc(r.product) + '</span>' : '') + '</td>' +
+        '<td>' + esc(reviewKindLabel(r.kind)) + (r.renewalNumber != null ? ' ' + esc(r.renewalNumber) : '') +
+        '</td><td class="hide-narrow">' + esc(r.stateLabel || '') + '</td>' +
+        '<td class="n"><input type="number" min="0" step="0.01" class="rvfee" data-ivrvfee="' + esc(tag) +
+        '" data-k="' + esc(r.key) + '" value="' + (r.fee == null ? '' : esc(r.fee)) +
+        '" aria-label="Fee" style="width:7em;text-align:right"></td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    '<div class="issacts"><button class="tbtn ghost" type="button" data-ivrvsave="' + esc(tag) + '">' +
+    'Save the Certifications on This Invoice</button></div>';
+}
+
 /* The reviews a SENT invoice carries. On MISMO's side (C given) each fee is
    checked against what the CMS says now. */
 function reviewsTable(list, C) {
@@ -8843,6 +8952,9 @@ function loadCompanyCore(slug) {
                 orderId: r.orderId, subject: r.subject };
             }),
             reviewsTotal: exp.reviewsTotal || 0,
+            /* ⚠ The firm is paid per review but its certifications could not be
+               read, so none could be recorded. MISMO records them before approving. */
+            reviewsUnread: firmPaidPerReview(C) && !(C.reviewsFile && Array.isArray(C.reviewsFile.engagements)),
               state: 'submitted', submittedBy: who().name, submittedAt: at,
               trail: [{ what: 'Submitted', at: at, by: who().name }]
             }]);
@@ -10898,6 +11010,13 @@ function loadCompanyCore(slug) {
           'so ' + (held.notApproved === 1 ? 'it is' : 'they are') + ' not in the figure above.</div>'
         : '') +
       reviewsTable(iv.reviews, C) +
+      (reviewsMissing(C, iv)
+        ? '<div class="note"><b>No certifications are recorded on this invoice.</b> It charges ' +
+          money(Number(iv.total || 0) - invoiceHoursTotal(iv)) + ' more than its hours, which is ' +
+          'certification work. Tick the certifications listed on their PDF below' +
+          (open ? ' before approving it.' : '.') + '</div>'
+        : '') +
+      reviewsEditor(C, iv) +
       '<h4 class="subh">What They Billed</h4>' +
       '<div class="tbl"><table><thead><tr><th>Service Order</th><th class="n">Hours</th>' +
       '<th class="n">Rate</th><th class="n">Amount</th></tr></thead><tbody>' +
@@ -11083,6 +11202,13 @@ function loadCompanyCore(slug) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
         var c = ctx(b.dataset.ivok); if (!c) return;
+        /* ⚠ The CMS matches each certification to the invoice that billed it.
+           Approved with none recorded, Accounting's report would show them unbilled. */
+        if (reviewsMissing(c.C, c.iv)) {
+          toast('Record the certifications this invoice bills first — tick them under ' +
+            'Record the Certifications This Invoice Bills, then save.', 'warn');
+          return;
+        }
         b.disabled = true; b.textContent = 'Approving…';
         var at = new Date().toISOString();
         setInvoice(c.C, c.iv.id, function (iv) {
@@ -11132,6 +11258,49 @@ function loadCompanyCore(slug) {
           .then(function () { toast('Approved and sent to accounts payable.', 'good'); redraw(); })
           .catch(function (er) {
             b.disabled = false; b.textContent = 'Approve and Send to Accounts Payable'; failed(er); });
+      });
+    });
+
+    $$('#view [data-ivrvsave]').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var tag = b.dataset.ivrvsave;
+        var c = ctx(tag); if (!c) return;
+        var feeOf = {};
+        $$('#view [data-ivrvfee]').forEach(function (inp) {
+          if (inp.dataset.ivrvfee !== tag) return;
+          var v = String(inp.value || '').trim();
+          feeOf[inp.dataset.k] = v === '' ? null : Number(v);
+        });
+        var on = {};
+        $$('#view [data-ivrv]').forEach(function (cb) {
+          if (cb.dataset.ivrv === tag && cb.checked) on[cb.dataset.k] = 1;
+        });
+        var bad = Object.keys(on).filter(function (k) {
+          return feeOf[k] != null && !(isFinite(feeOf[k]) && feeOf[k] >= 0); });
+        if (bad.length) { toast('A fee must be a number, or left empty if it is not known.', 'warn'); return; }
+        var picked = reviewChoices(c.C, c.iv).filter(function (r) { return on[r.key]; }).map(function (r) {
+          var fee = Object.prototype.hasOwnProperty.call(feeOf, r.key) ? feeOf[r.key] : r.fee;
+          return { key: r.key, row: r.row, org: r.org, program: r.program, product: r.product,
+            kind: r.kind, renewalNumber: r.renewalNumber, state: r.state, fee: fee,
+            orderId: r.orderId, subject: r.subject };
+        });
+        var total = Math.round(picked.reduce(function (a, r) {
+          return a + (r.fee == null ? 0 : Number(r.fee) || 0); }, 0) * 100) / 100;
+        b.disabled = true; b.textContent = 'Saving…';
+        var at = new Date().toISOString();
+        setInvoice(c.C, c.iv.id, function (iv) {
+          iv.reviews = picked;
+          iv.reviewsTotal = total;
+          iv.reviewsRecordedBy = ME.name; iv.reviewsRecordedAt = at;
+          delete iv.reviewsUnread;
+          iv.trail = (iv.trail || []).concat([{ what: picked.length
+            ? 'Certifications recorded: ' + picked.map(function (r) { return r.org + ' ' + r.program; }).join(', ')
+            : 'Certifications cleared', at: at, by: ME.name }]);
+        }, 'invoice ' + (c.iv.number || c.iv.id) + ': certifications recorded')
+          .then(function () { toast('Saved. The Certification Management System reads it from here.', 'good'); redraw(); })
+          .catch(function (er) {
+            b.disabled = false; b.textContent = 'Save the Certifications on This Invoice'; failed(er); });
       });
     });
 

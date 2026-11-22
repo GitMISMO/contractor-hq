@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122d">
+<meta name="so-version" content="20261122e">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -490,7 +490,13 @@ table .n, .doc .num{ font-family:var(--display) !important; font-variant-numeric
 .tw .neg{color:var(--bad);font-weight:600}
 .hdot{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .hdot i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
-.hdot.g i{background:var(--good)} .hdot.y i{background:var(--warn)} .hdot.r i{background:var(--bad)}
+.hdot.g i{background:var(--h-green)} .hdot.y i{background:var(--h-yellow)} .hdot.r i{background:var(--h-red)}
+/* ⚠ HEALTH HAS ITS OWN THREE COLOURS (Jonna, 22 Nov 2026: "why does yellow look
+   red?"). The page's warn colour is a dark amber chosen for text, and beside the
+   red it read as a second red, worst on a submitted week where the buttons fade.
+   A health dot is read by colour alone, so it gets a true yellow, set apart from
+   the red, and stays at full strength on a submitted week. */
+:root{--h-green:#22a06b;--h-yellow:#f5c518;--h-red:#d93f3a}
 .steps{counter-reset:s;margin:0;padding:0;list-style:none}
 .steps li{counter-increment:s;position:relative;padding-left:32px;margin-bottom:11px}
 .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:22px;height:22px;border-radius:5px;
@@ -1592,9 +1598,9 @@ td .meter{min-width:0}
 .healthpick select{flex:1 1 auto;min-width:0}
 .hdot{flex:0 0 auto;width:13px;height:13px;border-radius:50%;display:inline-block;
   border:1px solid rgba(13,49,76,.22)}
-.hdot.g{background:var(--good)}
-.hdot.y{background:var(--warn)}
-.hdot.r{background:var(--bad)}
+.hdot.g{background:var(--h-green)}
+.hdot.y{background:var(--h-yellow)}
+.hdot.r{background:var(--h-red)}
 .hdot.none{background:transparent;border-style:dashed;border-color:var(--border-strong)}
 .hdot.na{width:auto;height:auto;border:0;border-radius:3px;padding:1px 6px;background:var(--surface-3);
   color:var(--ink-3);font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;font-weight:600}
@@ -1695,12 +1701,13 @@ td .notefmt.fineprint{margin-top:6px}
   padding:5px 9px;cursor:pointer;color:var(--ink-2);white-space:nowrap}
 .hbtn:hover:not(:disabled){border-color:var(--border-strong);color:var(--ink)}
 .hbtn:focus-visible{outline:2px solid var(--sky);outline-offset:1px}
-.hbtn:disabled{opacity:.5;cursor:not-allowed}
+.hbtn:disabled{cursor:not-allowed;color:var(--ink-3)}
+.hbtn:disabled:not(.on){background:var(--sunk)}
 .hbtn .hd{width:11px;height:11px;border-radius:50%;flex:0 0 auto;
   border:1px solid rgba(13,49,76,.22);background:var(--surface-3)}
-.hbtn.g .hd{background:var(--good)}
-.hbtn.y .hd{background:var(--warn)}
-.hbtn.r .hd{background:var(--bad)}
+.hbtn.g .hd{background:var(--h-green)}
+.hbtn.y .hd{background:var(--h-yellow)}
+.hbtn.r .hd{background:var(--h-red)}
 .hbtn .hna{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--ink-3)}
 .hbtn.on{border-color:var(--navy);background:var(--sky-wash);color:var(--ink);font-weight:600}
 .hbtn.on .hd{box-shadow:0 0 0 2px var(--surface),0 0 0 3px currentColor}

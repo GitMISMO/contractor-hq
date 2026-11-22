@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-22
 
+- Sign-in: two-step sign-in and Change Password, as the other MISMO tools have them. When the sign-in service emails a six-digit code, Contractor HQ asks for it (Send a New Code, Back to Sign In), and the browser is then remembered for 30 days, shared with the other MISMO tools. Change Password is in the left nav above Help, with the same live checks (13 characters, not your name, email or MISMO, both match) [20261122g]
 - Sign-in: Forgot your password? emails a link to set a new one (one use, one hour), the same reset the other MISMO tools use. A locked account and a wrong password both offer it, and after setting the new password the person comes straight back to Contractor HQ, signed in [20261122f]
 - Health colours: a true yellow, clearly apart from the red, in the Health buttons and every health dot, and at full strength on a submitted week [20261122e]
 - My Hours: This Week and Upcoming are word-processor boxes with bold, italic, underline, bullet points, numbering and links (toolbar, or Ctrl+B / I / U / K). They are kept as plain text with light marks, so earlier notes read exactly as before, and they show formatted wherever MISMO reads them. The order's figures sit in one strip with the bar under them [20261122d]

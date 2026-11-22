@@ -211,7 +211,7 @@ __LOGO__
     var mine = all.filter(function (d) { return same((d.reviewer || {}).email, ME.email); });
     var waiting = mine.filter(function (d) { return d.state === 'pending'; });
     var asked = all.filter(function (d) { return same(d.requestedByEmail, ME.email) && d.state !== 'withdrawn'; });
-    var html = '<div class="vhead"><div class="eyebrow">Service Orders and Agreements</div><h1>' +
+    var html = '<div class="vhead"><div class="eyebrow">Contractor HQ</div><h1>' +
       (waiting.length ? waiting.length + (waiting.length === 1 ? ' Service Order' : ' Service Orders') + ' for You to Review' : 'Nothing Waiting for Your Review') +
       '</h1><p>New service orders you asked for come here before they go to the contracting company.</p></div>';
     if (waiting.length) html += list(waiting, 'Waiting for You');

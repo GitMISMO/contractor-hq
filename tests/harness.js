@@ -105,6 +105,11 @@ function relay(route, req, url, u, store) {
     }
     return json(200, { token: 't', name: u.name, email: u.email, access: u.access, expiresAt: new Date(Date.now() + 8 * 3600e3).toISOString() });
   }
+  if (kind === 'auth' && rest === 'forgot') {
+    // The real relay answers the same whether or not the account exists.
+    store.forgot = (store.forgot || []).concat([JSON.parse(req.postData() || '{}').email]);
+    return json(200, { ok: true });
+  }
   const acc = u.access[proj];
   if (!acc) return json(403, { error: 'NO_ACCESS' });
   const key = proj + '|' + rest;

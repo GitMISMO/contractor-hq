@@ -130,7 +130,9 @@ function tracked(dir) {
     if (!/if \(e\.conflict && tries > 1\) return update\(/.test(html)) bad.push('update() no longer retries on a version clash');
     if (!/\(e\.conflict \|\| e\.status === 409\) && tries > 1\) return updateData\(/.test(html)) bad.push('updateData() no longer retries on a version clash');
     if (!/parentSha/.test(html)) bad.push('saves no longer send the version they read (parentSha)');
-    const fetches = (html.match(/\bfetch\(/g) || []).length;
+    // The relay module's forgot() (20261122f) only asks for a reset email and saves nothing.
+    const forgotCalls = (html.match(/return fetch\(BASE \+ '\/' \+ enc\(p\) \+ '\/auth\/forgot'/g) || []).length;
+    const fetches = (html.match(/\bfetch\(/g) || []).length - forgotCalls;
     if (fetches !== 2) bad.push('index.html calls fetch() ' + fetches + ' times; only the relay module may (sign-in and send), so every save goes through it');
     const rv = read(path.join(DIR, 'review.html'));
     if (!/e\.status === 409 && tries > 1\) return decide\(/.test(rv)) bad.push('review.html no longer re-reads on a version clash');
@@ -272,6 +274,34 @@ function tracked(dir) {
     expect(await p.$eval('#ph-unsaved', e => !e.hidden), 'typing in the editor should mark the row Unsaved');
     const html = await p.$eval('#ph-note-ed', e => e.innerHTML);
     expect(!/<script|onerror|javascript:/i.test(html), 'the editor must hold no script');
+    noErrors(s.errs); await s.close();
+  });
+
+  /* Forgot your password (22 Nov 2026). Versions before 20261122f do not have it,
+     so this passes as not applicable there. */
+  await check('Forgot your password? sends a reset link, and a wrong password offers it', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('si-forgot') < 0) return;
+    const store = mkStore();
+    const s = await open(opts({ who: 'casey', store, noSession: true }));
+    const p = s.page;
+    await wait(s, 2000);
+    expect(await p.$('#si-forgot'), 'the sign-in card has no Forgot your password?');
+    await p.fill('#si-email', 'casey@northwind.test');
+    await p.fill('#si-pass', 'wrong'); await p.click('#si-go'); await wait(s, 800);
+    expect(await p.$('#si-note [data-si-reset]'), 'a wrong password should offer to reset it');
+    await p.click('#si-note [data-si-reset]'); await wait(s, 200);
+    expect(await p.$eval('#si-fview', e => !e.hidden), 'Reset should open the reset view');
+    expect((await p.inputValue('#si-femail')) === 'casey@northwind.test', 'the email should carry over');
+    await p.click('#si-fgo'); await wait(s, 800);
+    expect((store.forgot || []).indexOf('casey@northwind.test') >= 0, 'no reset was asked of the sign-in service');
+    const msg = await p.textContent('#si-note');
+    expect(/Check your email/.test(msg), 'no "check your email" message, saw: ' + msg);
+    expect(!(await p.isVisible('#si-fgo')), 'Send Reset Link should go away once the link is sent');
+    const note = await p.evaluate(() => JSON.parse(localStorage.getItem('resources:reset-return') || 'null'));
+    expect(note && /^\/contractor-hq\//.test(note.path) && note.session === 'resources:service-orders:session',
+      'the note that brings them back after the reset is missing or wrong: ' + JSON.stringify(note));
+    await p.click('#si-fback'); await wait(s, 200);
+    expect(await p.$eval('#si-view', e => !e.hidden), 'Back to Sign In should show the sign-in fields');
     noErrors(s.errs); await s.close();
   });
 

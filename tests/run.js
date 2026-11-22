@@ -230,11 +230,49 @@ function tracked(dir) {
     };
     const casey = await tools('casey');
     expect(casey.hours, 'Casey logs time but has no My Hours');
-    expect(casey.tools.join('|') === 'Initiative Hub|MMS|Meeting Trackers', 'Casey should see the three tools, saw: ' + casey.tools.join(', '));
+    const want = read(path.join(DIR, 'index.html')).indexOf("path: '/huddle/'") >= 0
+      ? 'Initiative Hub|MMS|Meeting Trackers|Huddle' : 'Initiative Hub|MMS|Meeting Trackers';
+    expect(casey.tools.join('|') === want, 'Casey should see ' + want + ', saw: ' + casey.tools.join(', '));
     for (const who of ['admin', 'sam']) {
       const g = await tools(who);
       expect(g.hours || !g.tools.length, who + ' does not log time but sees: ' + g.tools.join(', '));
     }
+  });
+
+  /* Rich notes on This Week and Upcoming, kept as plain text with marks (22 Nov 2026).
+     Versions before 20261122d do not have them, so this passes as not applicable there. */
+  await check('This Week takes bold, italic, underline, bullets, numbering and links, saved as plain marks', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('function wireRichNotes') < 0) return;
+    const s = await open(opts({ who: 'casey' }));
+    const p = s.page;
+    await wait(s, 3500);
+    await p.evaluate(() => { const b = document.querySelector('[data-hrow]'); if (b) b.click(); });
+    await p.waitForTimeout(800);
+    expect(await p.$('#ph-note-ed'), 'the This Week editor is missing');
+    await p.click('#ph-note-ed');
+    await p.keyboard.type('Did ');
+    await p.click('.rtebox [data-rte="bold"]'); await p.keyboard.type('this'); await p.click('.rtebox [data-rte="bold"]');
+    await p.keyboard.type(' ');
+    await p.click('.rtebox [data-rte="italic"]'); await p.keyboard.type('and'); await p.click('.rtebox [data-rte="italic"]');
+    await p.keyboard.type(' ');
+    await p.click('.rtebox [data-rte="underline"]'); await p.keyboard.type('that'); await p.click('.rtebox [data-rte="underline"]');
+    await p.keyboard.press('Enter');
+    await p.click('.rtebox [data-rte="insertUnorderedList"]');
+    await p.keyboard.type('one'); await p.keyboard.press('Enter'); await p.keyboard.type('two');
+    await p.keyboard.press('Enter'); await p.keyboard.press('Enter');
+    await p.click('.rtebox [data-rte="insertOrderedList"]');
+    await p.keyboard.type('first'); await p.keyboard.press('Enter'); await p.keyboard.press('Enter');
+    await p.click('.rtebox [data-rte="link"]');
+    await p.fill('.rtebox .rtelink input', 'example.org');
+    await p.keyboard.press('Enter');
+    await p.waitForTimeout(200);
+    const v = await p.$eval('#ph-note', t => t.value);
+    for (const want of ['**this**', '*and*', '++that++', '- one', '- two', '1. first', '](https://example.org)'])
+      expect(v.indexOf(want) >= 0, 'the stored note should hold ' + want + ', it holds: ' + JSON.stringify(v));
+    expect(await p.$eval('#ph-unsaved', e => !e.hidden), 'typing in the editor should mark the row Unsaved');
+    const html = await p.$eval('#ph-note-ed', e => e.innerHTML);
+    expect(!/<script|onerror|javascript:/i.test(html), 'the editor must hold no script');
+    noErrors(s.errs); await s.close();
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {
@@ -445,7 +483,10 @@ function tracked(dir) {
     if (label === 'Discard') { noErrors(s.errs); await s.close(); return; }   // versions before 20261116a
     expect(label === 'Close Without Saving', 'the close button reads "' + label + '"');
     expect(!(await s.page.$('#ph-clear')), 'an empty row should not offer Clear This Row');
-    await s.page.fill('#ph-num', '2'); await s.page.fill('#ph-note', 'Logged in the wrong week');
+    await s.page.fill('#ph-num', '2');
+    /* From 20261122d This Week is a rich editor over a hidden box; type into whichever is there. */
+    if (await s.page.$('#ph-note-ed')) { await s.page.click('#ph-note-ed'); await s.page.keyboard.type('Logged in the wrong week'); }
+    else await s.page.fill('#ph-note', 'Logged in the wrong week');
     await s.page.click('#ph-keep'); await wait(s, 400);
     await s.page.click('#h-save'); await wait(s, 1200);
     const saved = JSON.stringify((store.S[key] || {}).drafts || {});

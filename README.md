@@ -1,7 +1,7 @@
-# service-orders
+# contractor-hq
 
 **Public.** MISMO Contractor HQ (named Service Orders and Agreements until November 2026), served by GitHub Pages at
-`resources.mismo.org/service-orders/`.
+`resources.mismo.org/contractor-hq/`.
 
 ⚠ **This repository holds NO data.** The pages ask the save relay for everything, and the relay
 decides what each signed-in person may see. **Never commit a data file, a real company's figures,

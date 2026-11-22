@@ -13,7 +13,7 @@ Operations, MISMO).
 
 ## What It Does and Who Uses It
 
-Contractor HQ (named Service Orders and Agreements until November 2026), live at **https://resources.mismo.org/service-orders/**.
+Contractor HQ (named Service Orders and Agreements until November 2026), live at **https://resources.mismo.org/contractor-hq/**.
 It holds MISMO's service orders with its contracting companies (the firms whose people facilitate
 workgroups, run certifications and do other work for MISMO), and everything that hangs off them:
 signing, hours, invoices, expenses and the Master Services Agreement (MSA) extension letters.
@@ -47,7 +47,7 @@ figures, a token or a password here. The checks look for keys and tokens on ever
 | `review.html` | The staff review page for new orders. **Built, not hand-edited**: `python3 tools/make_review.py releases/<v>/index.html releases/<v>/review.html` copies the theme, logo and version from `index.html`. Uses the shared sign-in (`/assets/session.js`) and Team HQ access, because every staff member has Team HQ and not every one has a company key. |
 | `expenses-app.js` | The Expenses phone app layer, loaded by `index.html`: the phone-only My Expenses screen (`?app=expenses`), the install tip, the camera/receipt reader (Tesseract, from cdn.jsdelivr.net, falling back to the relay's ask route), and the eight-hour stay-signed-in on a phone. |
 | `expenses.webmanifest`, `xp-icon-*.png` | What a phone needs to install the Expenses app on its home screen. |
-| `releases/<version>/` | Every saved version, whole. Each one is also its **Test Copy** at `resources.mismo.org/service-orders/releases/<version>/`. |
+| `releases/<version>/` | Every saved version, whole. Each one is also its **Test Copy** at `resources.mismo.org/contractor-hq/releases/<version>/`. |
 | `LIVE` | The version that is live now (written by Publish a Version). |
 | `tools/new-version.sh` | Starts a new version folder from the live one. |
 | `tools/make_review.py` | Builds `review.html` from `index.html`. |
@@ -134,10 +134,10 @@ Every change is a saved version:
    `node tests/run.js --version <v>`. All must pass. Add a check for a new feature.
 6. **Upload** the new `releases/<version>/` folder (and any changed `tests/`, `CHANGELOG.md`,
    `DEVELOPING.md`) to `main`. The checks run on GitHub; a failure emails the uploader.
-7. **Try the Test Copy**: `https://resources.mismo.org/service-orders/releases/<version>/`. It is the
+7. **Try the Test Copy**: `https://resources.mismo.org/contractor-hq/releases/<version>/`. It is the
    real portal on the real data (a tag in the header says so), so try it carefully; anything saved there is saved
    for real. Emails it queues are real emails.
-8. **Jonna publishes it**: GitHub › GitMISMO/service-orders › Actions › **Publish a Version** › Run
+8. **Jonna publishes it**: GitHub › GitMISMO/contractor-hq › Actions › **Publish a Version** › Run
    workflow › the version. It runs every check against that version and only then copies it to the
    top of the repo and writes `LIVE`. GitHub Pages republishes within a minute or two.
 

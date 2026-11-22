@@ -62,8 +62,8 @@ async function open(opts) {
     if (url.origin === ORIGIN) {
       let p = url.pathname; if (p.endsWith('/')) p += 'index.html';
       if (p === '/assets/session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'session-stub.js')) });
-      if (!p.startsWith('/service-orders/')) return route.fulfill({ status: 404, body: 'not part of the checks' });
-      const file = path.join(ROOT, p.slice('/service-orders/'.length));
+      if (!p.startsWith('/contractor-hq/')) return route.fulfill({ status: 404, body: 'not part of the checks' });
+      const file = path.join(ROOT, p.slice('/contractor-hq/'.length));
       if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: 'not found' });
       const ext = path.extname(file);
       const ct = { '.js': 'application/javascript', '.html': 'text/html', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/json' }[ext] || 'text/plain';
@@ -82,7 +82,7 @@ async function open(opts) {
       try { sessionStorage.setItem('resources:service-orders:session', s); localStorage.setItem('resources:session', s); } catch (e) {}
     }, [JSON.stringify(sess)]);
   }
-  const base = ORIGIN + '/service-orders/' + (opts.version ? 'releases/' + opts.version + '/' : '');
+  const base = ORIGIN + '/contractor-hq/' + (opts.version ? 'releases/' + opts.version + '/' : '');
   await page.goto(base + (opts.path || ''));
   return { browser, ctx, page, store, errs, reqs, close: () => own ? browser.close() : ctx.close() };
 }

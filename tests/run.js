@@ -130,9 +130,10 @@ function tracked(dir) {
     if (!/if \(e\.conflict && tries > 1\) return update\(/.test(html)) bad.push('update() no longer retries on a version clash');
     if (!/\(e\.conflict \|\| e\.status === 409\) && tries > 1\) return updateData\(/.test(html)) bad.push('updateData() no longer retries on a version clash');
     if (!/parentSha/.test(html)) bad.push('saves no longer send the version they read (parentSha)');
-    // The relay module's forgot() (20261122f) only asks for a reset email and saves nothing.
-    const forgotCalls = (html.match(/return fetch\(BASE \+ '\/' \+ enc\(p\) \+ '\/auth\/forgot'/g) || []).length;
-    const fetches = (html.match(/\bfetch\(/g) || []).length - forgotCalls;
+    // The account calls (reset email 20261122f; sign-in code and Change Password 20261122g)
+    // go through one door, authPost(), on /hub/auth/, and save nothing.
+    const authCalls = (html.match(/return fetch\(BASE \+ '\/' \+ enc\(p\) \+ '\/auth\/forgot'|return fetch\(BASE \+ '\/hub\/auth\/' \+ what,/g) || []).length;
+    const fetches = (html.match(/\bfetch\(/g) || []).length - authCalls;
     if (fetches !== 2) bad.push('index.html calls fetch() ' + fetches + ' times; only the relay module may (sign-in and send), so every save goes through it');
     const rv = read(path.join(DIR, 'review.html'));
     if (!/e\.status === 409 && tries > 1\) return decide\(/.test(rv)) bad.push('review.html no longer re-reads on a version clash');
@@ -303,6 +304,79 @@ function tracked(dir) {
     await p.click('#si-fback'); await wait(s, 200);
     expect(await p.$eval('#si-view', e => !e.hidden), 'Back to Sign In should show the sign-in fields');
     noErrors(s.errs); await s.close();
+  });
+
+  /* Two-step sign-in and Change Password (22 Nov 2026), as the shared MISMO sign-in has them.
+     Versions before 20261122g do not have them, so these pass as not applicable there. */
+  await check('A sign-in code is asked for, and the browser is remembered after it', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('si-cview') < 0) return;
+    const store = mkStore(); store.needCode = true;
+    const s = await open(opts({ who: 'casey', store, noSession: true }));
+    const p = s.page;
+    await wait(s, 2000);
+    await p.fill('#si-email', 'casey@northwind.test'); await p.fill('#si-pass', 'right');
+    await p.click('#si-go'); await wait(s, 800);
+    expect(await p.$eval('#si-cview', e => !e.hidden), 'the right password with no remembered browser should ask for the code');
+    expect(/casey@northwind\.test/.test(await p.textContent('#si-cnote')), 'the code screen should say where the code went');
+    expect(!(await p.evaluate(() => sessionStorage.getItem('resources:service-orders:session'))), 'no session before the code');
+    await p.fill('#si-code', '12345'); await p.click('#si-cgo'); await wait(s, 300);
+    expect((store.codes || []).length === 0, 'five digits should not be sent');
+    await p.click('#si-cnew'); await wait(s, 800);
+    expect(store.tickets === 2 && /new code/i.test(await p.textContent('#si-note')), 'Send a New Code should ask again and say so');
+    await p.fill('#si-code', '999999'); await p.click('#si-cgo'); await wait(s, 800);
+    expect(/not right/.test(await p.textContent('#si-note')), 'a wrong code should say so');
+    expect(await p.$eval('#si-cview', e => !e.hidden), 'a wrong code should stay on the code screen');
+    await p.fill('#si-code', '123 456'); await p.click('#si-cgo'); await wait(s, 2500);
+    expect(!(await p.evaluate(() => document.body.classList.contains('signedout'))), 'the right code should sign in');
+    const st = await p.evaluate(() => ({ dev: JSON.parse(localStorage.getItem('resources:devices') || '{}'),
+      sess: JSON.parse(sessionStorage.getItem('resources:service-orders:session') || 'null') }));
+    expect(st.dev['casey@northwind.test'] === 'dev-2', 'the browser should be remembered where the shared sign-in keeps it: ' + JSON.stringify(st.dev));
+    expect(st.sess && st.sess.token === 't' && !('device' in st.sess), 'the session should hold the token and not the browser token');
+    const stored = await p.evaluate(() => JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage)));
+    expect(stored.indexOf('right') < 0 && stored.indexOf('123456') < 0, 'a password or code was kept in the browser');
+    expect(await p.$('#si-pass') === null, 'the sign-in screen (with the password in it) should be gone once signed in');
+    // Signed out and in again: the remembered browser skips the code.
+    await p.evaluate(() => sessionStorage.clear()); await p.reload(); await wait(s, 1500);
+    await p.fill('#si-email', 'casey@northwind.test'); await p.fill('#si-pass', 'right');
+    await p.click('#si-go'); await wait(s, 2500);
+    expect(store.loginBodies[store.loginBodies.length - 1].device === 'dev-2', 'the next sign-in should send the remembered browser');
+    expect(!(await p.evaluate(() => document.body.classList.contains('signedout'))), 'a remembered browser should sign straight in');
+    noErrors(s.errs); await s.close();
+  });
+
+  await check('Change Password is in the left nav and changes it', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('openChangePassword') < 0) return;
+    const store = mkStore();
+    const s = await open(opts({ who: 'casey', store }));
+    const p = s.page;
+    await wait(s, 2500);
+    const order = await p.$$eval('.hq nav .railout, .hq nav .railsec, .hq nav button', els => els.map(e => (e.textContent || '').trim()).filter(Boolean));
+    const iPw = order.indexOf('Change Password'), iOut = order.indexOf('Sign Out');
+    expect(iPw >= 0 && iOut > iPw, 'Change Password should sit above Sign Out: ' + order.join(' | '));
+    await p.click('#rail-pw'); await wait(s, 200);
+    expect(await p.$('#pwdlg'), 'the Change Password dialog did not open');
+    await p.fill('#pw-cur', 'wrong'); await p.fill('#pw-new', 'casey-garden-lamp'); await p.fill('#pw-new2', 'casey-garden-lamp');
+    expect((await p.$$('#pw-checks li.pass')).length === 2, 'a password with their name in it should fail that check');
+    await p.click('#pw-go'); await wait(s, 300);
+    expect(!store.pwChanged, 'a password that fails the checks should not be sent');
+    await p.fill('#pw-new', 'river-garden-lamp-77'); await p.fill('#pw-new2', 'river-garden-lamp-77');
+    expect((await p.$$('#pw-checks li.pass')).length === 3, 'all three checks should pass');
+    await p.click('#pw-go'); await wait(s, 800);
+    expect(/current password is not right/.test(await p.textContent('#pw-note')), 'a wrong current password should be shown as the relay says it');
+    await p.fill('#pw-cur', 'right'); await p.click('#pw-go'); await wait(s, 800);
+    expect(store.pwChanged === 'river-garden-lamp-77', 'the new password was not sent');
+    expect(/Password changed/.test(await p.textContent('#pw-note')), 'no confirmation after changing it');
+    const st = await p.evaluate(() => ({ sess: JSON.parse(sessionStorage.getItem('resources:service-orders:session') || 'null'),
+      dev: JSON.parse(localStorage.getItem('resources:devices') || '{}') }));
+    expect(st.sess && st.sess.token === 't2' && st.sess.access && st.sess.name, 'the new session should replace the old one and keep the name and access');
+    expect(st.dev['casey@northwind.test'] === 'dev-pw', 'this browser should stay remembered');
+    expect(!('device' in st.sess), 'the browser token should not be in the session');
+    const stored = await p.evaluate(() => JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage)));
+    expect(stored.indexOf('river-garden-lamp-77') < 0 && stored.indexOf('"right"') < 0, 'a password was kept in the browser');
+    await wait(s, 2600);
+    expect(!(await p.$('#pwdlg')), 'the dialog should close itself after the confirmation');
+    // The relay's refusal of the wrong current password is expected, not an error.
+    noErrors(s.errs.filter(e => !/status of 400/.test(e))); await s.close();
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {

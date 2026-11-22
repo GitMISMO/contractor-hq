@@ -103,7 +103,28 @@ function relay(route, req, url, u, store) {
       if (store.fails >= 5) return json(423, { error: 'LOCKED', message: 'locked' });
       return json(401, { error: 'SIGNIN_FAILED', remaining: 5 - store.fails, message: 'That email and password do not match an account.' });
     }
+    store.loginBodies = (store.loginBodies || []).concat([body]);
+    // Two-step sign-in: with store.needCode set, a browser the relay does not remember gets a code.
+    if (store.needCode && (!store.device || body.device !== store.device)) {
+      store.tickets = (store.tickets || 0) + 1;
+      return json(200, { codeRequired: true, ticket: 'tk' + store.tickets });
+    }
     return json(200, { token: 't', name: u.name, email: u.email, access: u.access, expiresAt: new Date(Date.now() + 8 * 3600e3).toISOString() });
+  }
+  if (kind === 'auth' && rest === 'code') {
+    const body = JSON.parse(req.postData() || '{}');
+    store.codes = (store.codes || []).concat([body]);
+    if (body.ticket !== 'tk' + store.tickets) return json(400, { error: 'OLD_CODE', message: 'That code is from an older email. Use the newest one.' });
+    if (body.code !== '123456') return json(401, { error: 'WRONG_CODE', message: 'That code is not right. One more wrong code locks the account.' });
+    store.device = 'dev-' + store.tickets;
+    return json(200, { token: 't', device: store.device, name: u.name, email: u.email, access: u.access, expiresAt: new Date(Date.now() + 8 * 3600e3).toISOString() });
+  }
+  if (kind === 'auth' && rest === 'password') {
+    const body = JSON.parse(req.postData() || '{}');
+    if ((req.headers()['authorization'] || '') !== 'Bearer t') return json(401, { error: 'TOKEN_STALE' });
+    if (body.current !== 'right') return json(400, { error: 'BAD_PASSWORD', problems: ['Your current password is not right.'] });
+    store.pwChanged = body.password;
+    return json(200, { token: 't2', device: 'dev-pw', email: u.email, expiresAt: new Date(Date.now() + 8 * 3600e3).toISOString() });
   }
   if (kind === 'auth' && rest === 'forgot') {
     // The real relay answers the same whether or not the account exists.

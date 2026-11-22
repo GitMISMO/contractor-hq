@@ -13,7 +13,7 @@ Operations, MISMO).
 
 ## What It Does and Who Uses It
 
-The Service Orders and Agreements portal, live at **https://resources.mismo.org/service-orders/**.
+Contractor HQ (named Service Orders and Agreements until November 2026), live at **https://resources.mismo.org/service-orders/**.
 It holds MISMO's service orders with its contracting companies (the firms whose people facilitate
 workgroups, run certifications and do other work for MISMO), and everything that hangs off them:
 signing, hours, invoices, expenses and the Master Services Agreement (MSA) extension letters.

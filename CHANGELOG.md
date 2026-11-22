@@ -4,6 +4,10 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-22
+
+- The portal is now called **Contractor HQ** (it was Service Orders and Agreements): the page title, the header, the sign-in card, the emails' buttons (Open Contractor HQ) and the printed expense report. Its address, sign-ins and everything in it are unchanged; Service Orders stays the name of the orders page inside it [20261122a]
+
 ## 2026-11-18
 
 - Assessor invoices record every certification they bill, for the Certification Management System's Assessor Invoice column on Certification Completions: MISMO can tick the certifications on any invoice from a firm paid per review (from the PDF, any state, with the fee), and an invoice that charges more than its hours with none recorded cannot be approved until they are. Falcon's MISMO1026 was back-filled: NotaryHub RON Renewal 3 and Rocket Close RON Renewal 6 [20261118a]

@@ -1,6 +1,6 @@
 # service-orders
 
-**Public.** The MISMO Service Orders and Agreements portal, served by GitHub Pages at
+**Public.** MISMO Contractor HQ (named Service Orders and Agreements until November 2026), served by GitHub Pages at
 `resources.mismo.org/service-orders/`.
 
 ⚠ **This repository holds NO data.** The pages ask the save relay for everything, and the relay

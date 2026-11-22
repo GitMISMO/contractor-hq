@@ -6,6 +6,9 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-22
 
+- My Hours: This Week and Upcoming are word-processor boxes with bold, italic, underline, bullet points, numbering and links (toolbar, or Ctrl+B / I / U / K). They are kept as plain text with light marks, so earlier notes read exactly as before, and they show formatted wherever MISMO reads them. The order's figures sit in one strip with the bar under them [20261122d]
+- More room between Take It Back to Correct and the Normally Mine buttons; Help sits at the foot of the left nav, just above Sign Out [20261122d]
+- Other MISMO Tools in the left nav also takes people who log time to Huddle, MISMO's meeting polls [20261122d]
 - People who log time (facilitators and architects) have Other MISMO Tools in the left nav: Initiative Hub, MMS and Meeting Trackers, each opening in a new tab. A company's signer and MISMO staff who log no time do not see them [20261122c]
 - Contractor HQ moves to **resources.mismo.org/contractor-hq/** (the repository is renamed contractor-hq). Every email button, the review link, the Expenses phone app and Help use the new address; the old one forwards to the same page at the new one, so links already sent keep working. Sign-ins, keys and data are unchanged [20261122b]
 - The portal is now called **Contractor HQ** (it was Service Orders and Agreements): the page title, the header, the sign-in card, the emails' buttons (Open Contractor HQ) and the printed expense report. Its address, sign-ins and everything in it are unchanged; Service Orders stays the name of the orders page inside it [20261122a]

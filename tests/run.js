@@ -199,7 +199,7 @@ function tracked(dir) {
     for (const who of ['admin', 'vp', 'president', 'sam', 'casey']) {
       const s = await open(opts({ who, store }));
       await wait(s, 3500);
-      const names = await s.page.evaluate(() => [...document.querySelectorAll('#rail-nav button')].map(b => b.textContent.trim().replace(/\d+$/, '').trim()));
+      const names = await s.page.evaluate(() => [...document.querySelectorAll('#rail-nav button:not(.railtool)')].map(b => b.textContent.trim().replace(/\d+$/, '').trim()));
       if (!names.length && who === 'admin') broken.push('admin: no sections in the menu');
       for (const n of names) {
         const before = s.errs.length;
@@ -212,6 +212,29 @@ function tracked(dir) {
       await s.close();
     }
     expect(!broken.length, [...new Set(broken)].join('\n'));
+  });
+
+  /* Other MISMO Tools in the rail, only for people who log time (22 Nov 2026). Versions
+     before 20261122c do not have it, so this passes as not applicable there. */
+  await check('People who log time get Initiative Hub, MMS and Meeting Trackers in the rail; others do not', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('var OTHER_TOOLS') < 0) return;
+    const store = mkStore();
+    const tools = async who => {
+      const s = await open(opts({ who, store }));
+      await wait(s, 3500);
+      const got = await s.page.evaluate(() => ({
+        tools: [...document.querySelectorAll('#rail-nav button.railtool')].map(b => b.textContent.trim()),
+        hours: [...document.querySelectorAll('#rail-nav button')].some(b => b.textContent.trim().startsWith('My Hours')) }));
+      noErrors(s.errs); await s.close();
+      return got;
+    };
+    const casey = await tools('casey');
+    expect(casey.hours, 'Casey logs time but has no My Hours');
+    expect(casey.tools.join('|') === 'Initiative Hub|MMS|Meeting Trackers', 'Casey should see the three tools, saw: ' + casey.tools.join(', '));
+    for (const who of ['admin', 'sam']) {
+      const g = await tools(who);
+      expect(g.hours || !g.tools.length, who + ' does not log time but sees: ' + g.tools.join(', '));
+    }
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {

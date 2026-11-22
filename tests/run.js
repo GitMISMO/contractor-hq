@@ -548,6 +548,8 @@ function tracked(dir) {
     expect(!P.missing({ slug: 'x', F: { orders: [{ id: 'h', feeType: 'Hourly' }] } }, iv), 'a firm not paid per review is never asked');
     expect(/data-ivrvsave/.test(P.editor(C, iv)), 'MISMO gets a Save button for the certifications');
     expect(src.indexOf('if (reviewsMissing(c.C, c.iv))') > 0, 'approving must refuse an invoice that bills certifications with none recorded');
+    if (src.indexOf('iv.approvedTotal = Math.round((invoiceHoursTotal(iv) + total)') < 0 && src.indexOf('function reviewsEditor') > 0 && /Contractor HQ/.test(src))
+      expect(false, 'recording certifications must also correct the stored approved total and difference');
     expect(/reviews: \(exp\.reviews \|\| \[\]\)\.map[\s\S]{0,400}key: r\.key, row: r\.row[\s\S]{0,200}kind: r\.kind, renewalNumber: r\.renewalNumber/.test(src), 'the firm-side record keeps the field names the CMS reads');
   });
 

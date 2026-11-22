@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122b">
+<meta name="so-version" content="20261122c">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -975,6 +975,8 @@ body.railmini .hq .mast-right .theme-btn span{display:none}
 }
 
 /* The count beside a rail item — the same number the section header carries. */
+.hq nav button.railtool .railext{width:12px;height:12px;margin-left:auto;opacity:.5}
+body.railmini .hq nav button.railtool .railext{display:none}
 .hq nav button .railn{margin-left:auto; font-style:normal;
   font-family:var(--mono); font-size:10.5px; font-weight:600;
   color:var(--side-dim,rgba(255,255,255,.55)); padding-left:8px}
@@ -3848,6 +3850,15 @@ window.H = (function () {
     'contractor expenses':'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
     'help':             '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 113.4 2.4c-.6.3-.9.8-.9 1.4v.5M12 17.2v.1"/>'
   };
+  /* The other MISMO tools a person who logs time is taken to (see buildRail). */
+  var OTHER_TOOLS = [
+    { name: 'Initiative Hub', path: '/initiative-hub/',
+      icon: '<circle cx="12" cy="12" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="20" r="2"/><path d="M6.6 7.3l3.3 2.8M17.4 7.3l-3.3 2.8M12 15v3"/>' },
+    { name: 'MMS', path: '/mms/',
+      icon: '<path d="M4 6h16M4 12h16M4 18h10"/><path d="M17 16l2 2 3-4"/>' },
+    { name: 'Meeting Trackers', path: '/meeting-trackers/',
+      icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15l2 2 4-4"/>' }
+  ];
   function railIcon(name) {
     return RAIL_ICONS[String(name).toLowerCase()] ||
       '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/>';
@@ -3951,6 +3962,34 @@ window.H = (function () {
       });
       host.appendChild(b);
     });
+    /* ⚠ OTHER MISMO TOOLS, for the people who log time — Jonna, 22 Nov 2026.
+       The facilitators and architects who submit hours also work in the
+       Initiative Hub, the MMS and the Meeting Trackers, so the rail takes them
+       there. Only for someone whose screen has My Hours: a company's signer or
+       MISMO staff who log no time are not sent to tools that are not theirs.
+       Each opens in a new tab so their place here is kept; the tool itself
+       checks their access with the same sign-in. */
+    var logsTime = Array.prototype.some.call(secs, function (sec) {
+      var h1 = sec.querySelector('.psec-h');
+      var nm1 = sec.getAttribute('data-name') || (h1 && (h1.querySelector('span') || {}).textContent) || '';
+      return nm1 === 'My Hours';
+    });
+    if (logsTime) {
+      var gh = document.createElement('div');
+      gh.className = 'railgroup';
+      gh.textContent = 'Other MISMO Tools';
+      host.appendChild(gh);
+      OTHER_TOOLS.forEach(function (t) {
+        var a = document.createElement('button');
+        a.type = 'button';
+        a.className = 'railtool';
+        a.title = 'Open ' + t.name + ' in a new tab';
+        a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + t.icon + '</svg><span>' + t.name + '</span>' +
+          '<svg class="railext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>';
+        a.addEventListener('click', function () { window.open(t.path, '_blank', 'noopener'); });
+        host.appendChild(a);
+      });
+    }
     /* Signing out belongs where the person can always see it, and it should say
        whose session it is ending. */
     var sess = R.session();

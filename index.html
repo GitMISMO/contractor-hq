@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122a">
+<meta name="so-version" content="20261122b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1025,7 +1025,7 @@ body{ font-variant-numeric:tabular-nums; }
    panel) were the last two things on the page set in something else. */
 button,input,select,textarea,optgroup{font-family:inherit}
 
-/* The platform page — resources.mismo.org/service-orders/
+/* The platform page — resources.mismo.org/contractor-hq/
    Sits on top of style.css so the portal, the Sponsorship Portal and Summit HQ
    read as the same family. Only what is different lives here. */
 
@@ -5808,7 +5808,7 @@ function loadCompanyCore(slug) {
    * THE REQUESTER'S REVIEW (Jonna, 5 November 2026)
    *
    * Jonna drafts a new service order and sends it to the staff member who asked
-   * for it. They review it on resources.mismo.org/service-orders/review.html
+   * for it. They review it on resources.mismo.org/contractor-hq/review.html
    * and approve it or send it back with what needs changing. Approved, it goes
    * the normal way: the VP decides, it is sent, the company accepts it from the
    * branded email, the President approves it.
@@ -5820,7 +5820,7 @@ function loadCompanyCore(slug) {
    * it (o.review.id). This page reads the decision in and writes it onto the
    * order the next time Jonna or the VP opens it.
    * ======================================================================= */
-  var REVIEW_URL = 'https://resources.mismo.org/service-orders/review.html';
+  var REVIEW_URL = 'https://resources.mismo.org/contractor-hq/review.html';
   function withReviewDecisions(list) {
     var any = list.some(function (C) {
       return (C.F.orders || []).some(function (o) { return o.review && o.review.id && o.review.state === 'pending'; });
@@ -5873,7 +5873,7 @@ function loadCompanyCore(slug) {
                     title: 'A Service Order Was Approved by the Requester',
                     said: ((rv.by || {}).name || 'The requester') + ' reviewed and approved "' + o.subject + '" for ' +
                           C.F.company + ' without changes. It is in Needs You, ready for you to send to ' + (vp.name || 'the VP') + '.',
-                    cta: { text: 'Open Needs You', url: 'https://resources.mismo.org/service-orders/' },
+                    cta: { text: 'Open Needs You', url: 'https://resources.mismo.org/contractor-hq/' },
                     raisedOn: at, forAttentionOf: 'jcritchley@mismo.org', sent: false, sentOn: null }
                 : rv.state === 'revised'
                 ? { kind: 'order-review-changes', company: C.F.company, orderId: o.id, order: o.subject,
@@ -5882,12 +5882,12 @@ function loadCompanyCore(slug) {
                           C.F.company + ' and sent it back to you.' + (rv.comments ? ' They said: ' + rv.comments : '') +
                           ' Open Needs You to see what changed and use their changes.',
                     title: 'Changes to a New Service Order',
-                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
+                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/contractor-hq/' },
                     raisedOn: at, forAttentionOf: 'jcritchley@mismo.org', sent: false, sentOn: null }
                 : { kind: 'order-review-changes', company: C.F.company, orderId: o.id, order: o.subject,
                     who: rv.decidedBy || (rv.by || {}).name, said: rv.comments || '',
                     title: 'A Service Order Was Sent Back for Changes',
-                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
+                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/contractor-hq/' },
                     raisedOn: at, forAttentionOf: 'jcritchley@mismo.org', sent: false, sentOn: null });
             });
           }, Promise.resolve());
@@ -5918,7 +5918,7 @@ function loadCompanyCore(slug) {
             said: ME.name + ' sent you ' + (group.length === 1 ? 'a new service order' : group.length + ' new service orders') + ' for ' +
                   C.F.company + ', reviewed by the people who asked for them: ' + names + '. Your approval sends ' +
                   (group.length === 1 ? 'it' : 'them') + ' to ' + C.F.company + ' to accept.',
-            cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
+            cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/contractor-hq/' },
             raisedOn: at, forAttentionOf: vp.email ? null : 'jcritchley@mismo.org', sent: false, sentOn: null });
         });
       });
@@ -6082,7 +6082,7 @@ function loadCompanyCore(slug) {
      company accepts, or asks a question, the reminders still waiting for those
      orders are struck off, so nobody is chased about something already done. */
   var JONNA = 'jcritchley@mismo.org';
-  var PORTAL_URL = 'https://resources.mismo.org/service-orders/';
+  var PORTAL_URL = 'https://resources.mismo.org/contractor-hq/';
   var WEEK = 7 * 24 * 3600 * 1000;
   function fileNotices(slug, list) {
     if (!list.length) return Promise.resolve();
@@ -8050,7 +8050,7 @@ function loadCompanyCore(slug) {
                 ' (' + money(total) + ')' + (trips.length ? ' for ' + trips.join(', ') : '') +
                 '. Please send MISMO one expense invoice for report ' + rid + ', for ' + money(total) +
                 '. The report, with the receipts, prints from the portal.',
-          cta: { text: 'Open the Expense Report', url: 'https://resources.mismo.org/service-orders/' },
+          cta: { text: 'Open the Expense Report', url: 'https://resources.mismo.org/contractor-hq/' },
           raisedOn: at, forAttentionOf: to.length ? null : 'jcritchley@mismo.org', sent: false, sentOn: null });
       }).then(function () {
         toast('Submitted ' + list.length + (list.length === 1 ? ' expense' : ' expenses') +
@@ -11344,7 +11344,7 @@ function loadCompanyCore(slug) {
                       (c.iv.person ? ' for ' + c.iv.person + '\u2019s expenses' : '') + ': ' + why +
                       ' The expenses are back with ' + (c.iv.person || 'the person') +
                       ' to fix and submit again; then send a new expense invoice for the new report.',
-                cta: { text: 'Open the Portal', url: 'https://resources.mismo.org/service-orders/' },
+                cta: { text: 'Open the Portal', url: 'https://resources.mismo.org/contractor-hq/' },
                 raisedOn: at, forAttentionOf: null, sent: false, sentOn: null });
             })
             .then(function () { toast('Sent back. The expenses are with the person again.', 'ok'); redraw(); })
@@ -13852,7 +13852,7 @@ function loadCompanyCore(slug) {
                   title: 'A Service Order Ready for Your Decision',
                   said: '"' + (pr.subject || x.o.subject) + '" for ' + x.C.F.company + ' has been reviewed by ' +
                         ((x.o.review.by || {}).name || 'the requester') + ' and is now waiting for your decision before it is sent.',
-                  cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
+                  cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/contractor-hq/' },
                   raisedOn: at, forAttentionOf: vp.email ? null : 'jcritchley@mismo.org', sent: false, sentOn: null });
               })
               .then(function () { closePanel(true); toast('Their changes are in. It is with ' + (((x.C.F.vpProduct) || {}).name || 'the VP') + ' for a decision', 'good'); adminView(); })
@@ -14885,7 +14885,7 @@ function loadCompanyCore(slug) {
   function helpForInner(kind, F, opts) {
     var o = opts || {};
     var signIn = blk('Signing In', steps([
-      'Go to <b>resources.mismo.org/service-orders/</b>.',
+      'Go to <b>resources.mismo.org/contractor-hq/</b>.',
       'Type the email address MISMO set you up with, and the password they sent you separately.',
       'Press <b>Sign In</b>. Your session lasts eight hours and ends when you close the tab.',
       'The account is <b>yours</b>, not your company’s — do not share the password.']));

@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122e">
+<meta name="so-version" content="20261122f">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1348,6 +1348,16 @@ body.signedout main,body.signedout #view{padding:0}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .signfields input:focus{
   border-color:var(--sky);box-shadow:0 0 0 3px rgba(116,191,235,.22)} }
 
+.signforgot{display:block;margin:-6px 0 14px auto;background:none;border:0;padding:2px 0;font:inherit;
+  font-size:12.5px;font-weight:600;color:var(--navy);cursor:pointer;text-align:right}
+.signforgot:hover,.signlink:hover{text-decoration:underline}
+.signforgot:focus-visible,.signlink:focus-visible,.signback:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.signlink{background:none;border:0;padding:0;font:inherit;font-weight:700;color:inherit;text-decoration:underline;cursor:pointer;margin-top:6px}
+.signback{display:block;width:100%;margin-top:10px;background:none;color:var(--ink);border:1px solid var(--border);
+  border-radius:6px;padding:10px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.signback:hover{background:var(--surface-2)}
+:root[data-theme="dark"] .signforgot{color:var(--sky)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .signforgot{color:var(--sky)} }
 .signgo{display:block;width:100%;background:var(--navy);color:#fff;border:1px solid var(--navy);
   border-radius:7px;padding:12px 16px;font:inherit;font-family:var(--display);font-size:14px;
   font-weight:600;cursor:pointer}
@@ -2233,6 +2243,20 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
       .then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
   }
 
+  /* "Forgot your password?" — the same relay route the other MISMO tools use
+     (POST /{project}/auth/forgot; sign-in is global, so any project path works).
+     The relay emails a one-hour, one-use link to /reset-password.html, and
+     answers the same whether or not the account exists, so this reveals
+     nothing about who has one. */
+  function forgot(email) {
+    var p = 'hub';   // the same path the shared MISMO sign-in uses; sign-in is global
+    return fetch(BASE + '/' + enc(p) + '/auth/forgot', {
+      method: 'POST', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(readBody);
+  }
+
   function send(method, path, body) {
     var s = session();
     if (!s) return Promise.reject(fail(401, { error: 'NO_SESSION', message: 'Sign in again.' }));
@@ -2565,7 +2589,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   global.MISMO_RELAY = {
     readData: readData, writeData: writeData, updateData: updateData,
     base: BASE,
-    boot: boot, whoami: whoami, loginAny: loginAny,
+    boot: boot, whoami: whoami, loginAny: loginAny, forgot: forgot,
     login: login, signOut: signOut, signedIn: signedIn, session: session,
     read: read, readOr: readOr, readRaw: readRaw,
     commit: commit, update: update,
@@ -15521,6 +15545,7 @@ function loadCompanyCore(slug) {
         '<p class="signsub">Your service orders and agreements with MISMO, the hours and expenses ' +
         'logged against them, and your invoices.</p>' +
         '<div id="si-note" class="signnote">' + (note ? '<div class="note warn">' + note + '</div>' : '') + '</div>' +
+        '<div id="si-view">' +
         '<div class="signfields">' +
           '<div class="f"><label for="si-email">Email</label>' +
             '<input type="email" id="si-email" autocomplete="username" spellcheck="false" ' +
@@ -15529,11 +15554,26 @@ function loadCompanyCore(slug) {
             '<input type="password" id="si-pass" autocomplete="current-password" ' +
             'placeholder="paste the password you were sent"></div>' +
         '</div>' +
+        '<button class="signforgot" type="button" id="si-forgot">Forgot your password?</button>' +
         '<button class="signgo" type="button" id="si-go">Sign In</button>' +
+        '</div>' +
+        /* ⚠ FORGOT YOUR PASSWORD — Jonna, 22 Nov 2026: the reset the other MISMO
+           tools have. The same card, switched to asking for an email. */
+        '<div id="si-fview" hidden>' +
+        '<p class="signsub" style="margin-bottom:14px"><b>Reset your password.</b> Enter the email your ' +
+          'account uses and we will email you a link to set a new one. It works once, for one hour.</p>' +
+        '<div class="signfields">' +
+          '<div class="f"><label for="si-femail">Email</label>' +
+            '<input type="email" id="si-femail" autocomplete="username" spellcheck="false" ' +
+            'autocapitalize="off" placeholder="you@yourcompany.com"></div>' +
+        '</div>' +
+        '<button class="signgo" type="button" id="si-fgo">Send Reset Link</button>' +
+        '<button class="signback" type="button" id="si-fback">Back to Sign In</button>' +
+        '</div>' +
         '<p class="signfine">' + (document.documentElement.classList.contains('soxp')
           ? 'You stay signed in on this phone for eight hours, or until you sign out.'
           : 'Your session lasts eight hours and ends when you close this tab.') + '<br>' +
-        'No password? Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a>.</p>' +
+        'No account yet? Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a>.</p>' +
         '<p class="signfine buildline">Build ' + esc(BUILD) + '</p>' +
       '</div></div>');
 
@@ -15541,7 +15581,70 @@ function loadCompanyCore(slug) {
     var passEl  = document.getElementById('si-pass');
     var goEl    = document.getElementById('si-go');
     var noteEl  = document.getElementById('si-note');
+    var viewEl  = document.getElementById('si-view');
+    var fviewEl = document.getElementById('si-fview');
+    var femailEl = document.getElementById('si-femail');
+    var fgoEl   = document.getElementById('si-fgo');
     if (emailEl) emailEl.focus();
+
+    function showForgot() {
+      viewEl.hidden = true; fviewEl.hidden = false;
+      if (noteEl) noteEl.innerHTML = '';
+      femailEl.value = (emailEl.value || '').trim();
+      fgoEl.style.display = ''; fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
+      setTimeout(function () { (femailEl.value ? fgoEl : femailEl).focus(); }, 20);
+    }
+    function showSignIn() {
+      fviewEl.hidden = true; viewEl.hidden = false;
+      if (noteEl) noteEl.innerHTML = '';
+      if (femailEl.value && !emailEl.value) emailEl.value = femailEl.value;
+      (emailEl.value ? passEl : emailEl).focus();
+    }
+    function sendReset() {
+      var em = (femailEl.value || '').trim().toLowerCase();
+      if (!em || em.indexOf('@') < 0) {
+        if (noteEl) noteEl.innerHTML = '<div class="note warn"><b>Enter your email.</b> The one your account was set up with.</div>';
+        femailEl.focus(); return;
+      }
+      fgoEl.disabled = true; fgoEl.textContent = 'Sending\u2026';
+      if (noteEl) noteEl.innerHTML = '';
+      /* ⚠ Where to come back to. The reset page is shared by every MISMO tool
+         and otherwise lands people on the Resources home page; this note (in
+         this browser only, for two hours) brings them back here, signed in. */
+      try {
+        localStorage.setItem('resources:reset-return', JSON.stringify({ path: location.pathname,
+          session: 'resources:service-orders:session', email: em, at: Date.now() }));
+      } catch (e) {}
+      R.forgot(em).then(function (x) {
+        if (x.ok) {
+          noteEl.innerHTML = '<div class="note ok"><b>Check your email.</b> If there is an account for ' +
+            esc(em) + ', a link to set a new password is on its way. It works once, for one hour. ' +
+            'Not there in a few minutes? Check your junk folder.</div>';
+          fgoEl.style.display = 'none'; return;
+        }
+        fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
+        if (x.status === 503 || x.status === 404) {
+          noteEl.innerHTML = '<div class="note warn"><b>Resetting your own password is not switched on yet.</b> ' +
+            'Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a> and she can reset it.</div>';
+          return;
+        }
+        noteEl.innerHTML = '<div class="note warn">' + esc((x.body && x.body.message) ||
+          ('That did not work (' + x.status + '). Try again.')) + '</div>';
+      }, function () {
+        fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
+        noteEl.innerHTML = '<div class="note warn"><b>The sign-in service did not answer.</b> ' +
+          'Check your connection and try again.</div>';
+      });
+    }
+    document.getElementById('si-forgot').addEventListener('click', showForgot);
+    document.getElementById('si-fback').addEventListener('click', showSignIn);
+    fgoEl.addEventListener('click', sendReset);
+    femailEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') sendReset(); });
+    /* A "Reset your password" button inside a warning opens the same view. */
+    if (noteEl) noteEl.addEventListener('click', function (ev) {
+      var b = ev.target.closest && ev.target.closest('[data-si-reset]');
+      if (b) { ev.preventDefault(); showForgot(); }
+    });
 
     function warn(html) {
       if (noteEl) noteEl.innerHTML = '<div class="note warn">' + html + '</div>';
@@ -15579,9 +15682,9 @@ function loadCompanyCore(slug) {
           return;
         }
         if (e && (e.status === 423 || e.code === 'LOCKED')) {
-          warn('<b>Your account is locked</b> after too many incorrect passwords. Check your email for ' +
-               'the link to set a new password, or <a href="/reset-password.html">reset it here</a>. ' +
-               'Then sign in with the new one.');
+          warn('<b>Your account is locked</b> after too many incorrect passwords. Set a new password ' +
+               'to unlock it, then sign in with the new one.<br>' +
+               '<button type="button" class="signlink" data-si-reset>Reset Your Password</button>');
           passEl.value = '';
           return;
         }
@@ -15590,8 +15693,8 @@ function loadCompanyCore(slug) {
           warn('<b>That email and password do not match.</b> Use your MISMO Resources email and ' +
                'password \u2014 the same ones you use for the other MISMO tools.' +
                (left != null ? ' <b>' + left + (left === 1 ? ' try' : ' tries') + ' left</b> before the ' +
-                 'account locks. <a href="/reset-password.html">Forgot it? Reset it here.</a>'
-                 : ' <a href="/reset-password.html">Forgot it? Reset it here.</a>'));
+                 'account locks. <button type="button" class="signlink" data-si-reset>Forgot it? Reset it here.</button>'
+                 : ' <button type="button" class="signlink" data-si-reset>Forgot it? Reset it here.</button>'));
           passEl.value = ''; passEl.focus();
           return;
         }

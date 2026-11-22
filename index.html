@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261118a">
+<meta name="so-version" content="20261122a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -15,7 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Expenses">
 <script src="expenses-app.js?v=3"></script>
-<title>MISMO Service Orders and Agreements</title>
+<title>MISMO Contractor HQ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>:root{
@@ -1968,7 +1968,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <header class="hqtop">
   <span class="logoplate"><svg class="wordmark" role="img" aria-label="MISMO" viewBox="0 0 708 108"><use href="#mismo-logo"/></svg><svg class="santa" viewBox="0 0 100 100" aria-hidden="true"><use href="#mismo-hat"/></svg></span>
   <span class="mastrule"></span>
-  <span class="hqname">Service Orders and Agreements</span>
+  <span class="hqname">Contractor HQ</span>
   <span class="hqtop-r">
     <span class="who" id="who"></span>
     <span class="eyebrow-m">Programs &amp; Operations</span>
@@ -1986,11 +1986,11 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></button>
     <svg class="fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
     <input type="search" id="rail-q" autocomplete="off" spellcheck="false" placeholder="Search"
-           aria-label="Search your service orders and agreements">
+           aria-label="Search Contractor HQ">
     <button class="railq-x" id="rail-qx" type="button" aria-label="Clear the search" hidden>&times;</button>
     <div class="railhits" id="rail-hits" hidden></div>
   </div>
-  <nav aria-label="Service Orders and Agreements" id="rail-nav"></nav>
+  <nav aria-label="Contractor HQ" id="rail-nav"></nav>
   <div class="railsum" id="railsum" hidden>
     <label for="co-pick">Contracting Company</label>
     <select id="co-pick" class="hq-pick" aria-label="Contracting Company"></select>
@@ -3154,7 +3154,7 @@ window.H = (function () {
   };
 })();
 </script>
-<script>/* MISMO Service Orders and Agreements — the platform page.
+<script>/* MISMO Contractor HQ (named Service Orders and Agreements until 22 Nov 2026) — the platform page.
  *
  * This file holds NO data.  Everything on screen arrives from the relay, which
  * decides what this person may see before it sends anything.  There is no
@@ -5882,12 +5882,12 @@ function loadCompanyCore(slug) {
                           C.F.company + ' and sent it back to you.' + (rv.comments ? ' They said: ' + rv.comments : '') +
                           ' Open Needs You to see what changed and use their changes.',
                     title: 'Changes to a New Service Order',
-                    cta: { text: 'Open the Service Orders Portal', url: 'https://resources.mismo.org/service-orders/' },
+                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
                     raisedOn: at, forAttentionOf: 'jcritchley@mismo.org', sent: false, sentOn: null }
                 : { kind: 'order-review-changes', company: C.F.company, orderId: o.id, order: o.subject,
                     who: rv.decidedBy || (rv.by || {}).name, said: rv.comments || '',
                     title: 'A Service Order Was Sent Back for Changes',
-                    cta: { text: 'Open the Service Orders Portal', url: 'https://resources.mismo.org/service-orders/' },
+                    cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
                     raisedOn: at, forAttentionOf: 'jcritchley@mismo.org', sent: false, sentOn: null });
             });
           }, Promise.resolve());
@@ -5918,7 +5918,7 @@ function loadCompanyCore(slug) {
             said: ME.name + ' sent you ' + (group.length === 1 ? 'a new service order' : group.length + ' new service orders') + ' for ' +
                   C.F.company + ', reviewed by the people who asked for them: ' + names + '. Your approval sends ' +
                   (group.length === 1 ? 'it' : 'them') + ' to ' + C.F.company + ' to accept.',
-            cta: { text: 'Open the Service Orders Portal', url: 'https://resources.mismo.org/service-orders/' },
+            cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
             raisedOn: at, forAttentionOf: vp.email ? null : 'jcritchley@mismo.org', sent: false, sentOn: null });
         });
       });
@@ -6111,7 +6111,7 @@ function loadCompanyCore(slug) {
     var out = [Object.assign({}, base, {
       kind: 'order-sent-to-company', to: s.email || null, cc: JONNA, forAttentionOf: s.email ? null : JONNA,
       title: n === 1 ? 'A Service Order for You to Accept' : n + ' Service Orders for You to Accept',
-      said: 'MISMO has sent ' + C.F.company + ' ' + orderWords(orders) + '. Sign in to the MISMO Service Orders portal to read ' +
+      said: 'MISMO has sent ' + C.F.company + ' ' + orderWords(orders) + '. Sign in to MISMO Contractor HQ to read ' +
             them + ' in full and accept ' + them + ', or to ask MISMO a question.'
     })];
     [1, 2, 3].forEach(function (k) {
@@ -6130,7 +6130,7 @@ function loadCompanyCore(slug) {
       title: 'Still Not Accepted After Three Reminders',
       said: C.F.company + ' has still not accepted ' + orderWords(orders) + '. It was sent on ' + longDate(when) +
             ' and three weekly reminders have gone to ' + (s.name || 'their signer') + '. Over to you.',
-      cta: { text: 'Open the Service Orders Portal', url: PORTAL_URL }
+      cta: { text: 'Open Contractor HQ', url: PORTAL_URL }
     }));
     return out;
   }
@@ -7560,7 +7560,7 @@ function loadCompanyCore(slug) {
       '<p class="foot">Reimbursed under the MBA travel and expense policy: a receipt for anything over ' + money(RECEIPT_OVER) +
       ' (nothing without one is repaid above ' + money(RECEIPT_OVER) + '); meals up to ' + money(MEAL_CAP['Meal Trvl - Breakfast']) +
       ' breakfast, ' + money(MEAL_CAP['Meal Trvl - Lunch']) + ' lunch, ' + money(MEAL_CAP['Meal Trvl - Dinner']) + ' dinner, ' +
-      money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks and ' + money(DAILY_MEAL_CAP) + ' a day in all. Printed ' + esc(stamp(new Date().toISOString())) + ' from the MISMO Service Orders portal.</p>' +
+      money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks and ' + money(DAILY_MEAL_CAP) + ' a day in all. Printed ' + esc(stamp(new Date().toISOString())) + ' from MISMO Contractor HQ.</p>' +
       (shots ? '<div class="shots"><h1>Receipts</h1>' + shots + '</div>' : '') +
       '</body></html>';
   }
@@ -11292,6 +11292,12 @@ function loadCompanyCore(slug) {
         setInvoice(c.C, c.iv.id, function (iv) {
           iv.reviews = picked;
           iv.reviewsTotal = total;
+          /* ⚠ The two figures stored when the firm sent it were worked out without these
+             certifications. Left as they were, the firm's own screen (and anything else that
+             reads approvedTotal and diff) keeps saying it does not match. Hours as billed,
+             plus the certifications now recorded. */
+          iv.approvedTotal = Math.round((invoiceHoursTotal(iv) + total) * 100) / 100;
+          iv.diff = Math.round((Number(iv.total || 0) - iv.approvedTotal) * 100) / 100;
           iv.reviewsRecordedBy = ME.name; iv.reviewsRecordedAt = at;
           delete iv.reviewsUnread;
           iv.trail = (iv.trail || []).concat([{ what: picked.length
@@ -13846,7 +13852,7 @@ function loadCompanyCore(slug) {
                   title: 'A Service Order Ready for Your Decision',
                   said: '"' + (pr.subject || x.o.subject) + '" for ' + x.C.F.company + ' has been reviewed by ' +
                         ((x.o.review.by || {}).name || 'the requester') + ' and is now waiting for your decision before it is sent.',
-                  cta: { text: 'Open the Service Orders Portal', url: 'https://resources.mismo.org/service-orders/' },
+                  cta: { text: 'Open Contractor HQ', url: 'https://resources.mismo.org/service-orders/' },
                   raisedOn: at, forAttentionOf: vp.email ? null : 'jcritchley@mismo.org', sent: false, sentOn: null });
               })
               .then(function () { closePanel(true); toast('Their changes are in. It is with ' + (((x.C.F.vpProduct) || {}).name || 'the VP') + ' for a decision', 'good'); adminView(); })
@@ -15174,9 +15180,9 @@ function loadCompanyCore(slug) {
         '<div class="signmark">' +
           '<svg class="wordmark" role="img" aria-label="MISMO" viewBox="0 0 708 108"><use href="#mismo-logo"/></svg>' +
         '</div>' +
-        '<h2>Service Orders and Agreements</h2>' +
-        '<p class="signsub">Your FY 2027 service orders, your Master Services Agreement extensions, ' +
-        'and the hours logged against each one.</p>' +
+        '<h2>Contractor HQ</h2>' +
+        '<p class="signsub">Your service orders and agreements with MISMO, the hours and expenses ' +
+        'logged against them, and your invoices.</p>' +
         '<div id="si-note" class="signnote">' + (note ? '<div class="note warn">' + note + '</div>' : '') + '</div>' +
         '<div class="signfields">' +
           '<div class="f"><label for="si-email">Email</label>' +

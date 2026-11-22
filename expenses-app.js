@@ -1,4 +1,4 @@
-/* MISMO Service Orders and Agreements — Expenses on a phone, and the receipt reader.
+/* MISMO Contractor HQ — Expenses on a phone, and the receipt reader.
  *
  * Two jobs, both kept out of index.html so the portal itself is not reworked:
  *

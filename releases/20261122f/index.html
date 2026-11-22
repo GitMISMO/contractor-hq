@@ -2249,7 +2249,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
      answers the same whether or not the account exists, so this reveals
      nothing about who has one. */
   function forgot(email) {
-    var p = (CFG.projects || [])[0] || 'hub';
+    var p = 'hub';   // the same path the shared MISMO sign-in uses; sign-in is global
     return fetch(BASE + '/' + enc(p) + '/auth/forgot', {
       method: 'POST', cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },

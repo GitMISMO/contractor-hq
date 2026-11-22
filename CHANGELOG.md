@@ -7,6 +7,7 @@ without descriptions; the portal has been in use since early October 2026.
 ## 2026-11-22
 
 - The portal is now called **Contractor HQ** (it was Service Orders and Agreements): the page title, the header, the sign-in card, the emails' buttons (Open Contractor HQ) and the printed expense report. Its address, sign-ins and everything in it are unchanged; Service Orders stays the name of the orders page inside it [20261122a]
+- Recording the certifications on an invoice now also corrects its stored figures (What MISMO Had Approved and the Difference), so the firm's screen no longer says it does not match. Falcon's MISMO1026 was corrected to $4,000.00 approved, no difference [20261122a]
 
 ## 2026-11-18
 

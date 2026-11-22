@@ -11292,6 +11292,12 @@ function loadCompanyCore(slug) {
         setInvoice(c.C, c.iv.id, function (iv) {
           iv.reviews = picked;
           iv.reviewsTotal = total;
+          /* ⚠ The two figures stored when the firm sent it were worked out without these
+             certifications. Left as they were, the firm's own screen (and anything else that
+             reads approvedTotal and diff) keeps saying it does not match. Hours as billed,
+             plus the certifications now recorded. */
+          iv.approvedTotal = Math.round((invoiceHoursTotal(iv) + total) * 100) / 100;
+          iv.diff = Math.round((Number(iv.total || 0) - iv.approvedTotal) * 100) / 100;
           iv.reviewsRecordedBy = ME.name; iv.reviewsRecordedAt = at;
           delete iv.reviewsUnread;
           iv.trail = (iv.trail || []).concat([{ what: picked.length

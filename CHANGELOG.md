@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-23
 
+- Opening: a read GitHub turns away (502 GITHUB from the relay) is asked again twice, a moment apart, instead of showing Something Went Wrong until a refresh. Saves are never repeated [20261123b]
 - Agreements: filing an executed MSA letter asks for the date it was executed (the last signature in DocuSign), today until changed and never in the future, instead of recording the day it was filed. Replace the Filed Copy shows and can correct it [20261123a]
 
 ## 2026-11-22

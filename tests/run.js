@@ -359,6 +359,20 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* Jonna, 22 Nov 2026: the Status Board at the top of the left nav (20261122i). */
+  await check('The Status Board is first in the left nav', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('var boardSec = null;') < 0) return;
+    const s = await open(opts({ who: 'admin' }));
+    const p = s.page;
+    await wait(s, 3000);
+    const items = await p.$$eval('#rail-nav > *', els => els.map(e => (e.textContent || '').trim()).filter(Boolean));
+    expect(items[0] === 'Status Board', 'the Status Board should be the first thing in the left nav: ' + items.slice(0, 6).join(' | '));
+    expect(items.indexOf('Status Board') === items.lastIndexOf('Status Board'), 'the Status Board should appear once');
+    await p.click('#rail-nav > button:first-child'); await wait(s, 300);
+    expect(await p.$eval('#sec-board', e => e.classList.contains('current')), 'clicking it should open the Status Board');
+    noErrors(s.errs); await s.close();
+  });
+
   await check('Help shows the version, and the Test Copy says what it is', async () => {
     const s = await open(opts({ who: 'admin' }));
     await wait(s, 3500); await nav(s.page, 'Help');

@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-22
 
+- Sign-in: Contractor HQ now uses the shared MISMO sign-in, like every other MISMO tool. One sign-in covers them all (no second sign-in from the Other MISMO Tools links or from another tool), the name chip is at the top right with its menu, and the sign-in screen, Forgot your password? and the emailed sign-in code are the shared ones. The sign-in stays in the browser for up to eight hours or until they sign out, instead of ending when the tab closes. A reset started here still comes back here [20261122j]
 - Left nav: the Status Board is at the top, above every group, instead of at the bottom under Everything Else [20261122i]
 - Sign-in: Change Password taken out of the left nav; Forgot your password? on the sign-in card is how anyone sets a new one. The sign-in code and remembered browsers stay [20261122h]
 - Sign-in: two-step sign-in and Change Password, as the other MISMO tools have them. When the sign-in service emails a six-digit code, Contractor HQ asks for it (Send a New Code, Back to Sign In), and the browser is then remembered for 30 days, shared with the other MISMO tools. Change Password is in the left nav above Help, with the same live checks (13 characters, not your name, email or MISMO, both match) [20261122g]

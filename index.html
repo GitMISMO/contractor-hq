@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261123a">
+<meta name="so-version" content="20261123b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -2265,11 +2265,29 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
        it on the error is what lets the page say WHICH key the relay refused
        instead of a bare code somebody then has to guess at. */
     var proj = decodeURIComponent(String(path).split('/')[1] || '');
-    return fetch(BASE + path, opts).then(readBody).then(function (r) {
-      if (r.status === 401) { tokDrop(); throw tag(fail(401, r.body), proj); }
-      if (!r.ok) throw tag(fail(r.status, r.body), proj);
-      return r.body;
-    });
+    /* ⚠ A READ THAT GITHUB REFUSES IS TRIED AGAIN (Jonna, 23 Nov 2026: "when I
+       open it it gives me the error, then I have to refresh to get in"). On
+       opening, the page asks the relay for many files at once, and a relay that
+       has just woken up can be turned away by GitHub for some of them (502
+       GITHUB). A refresh worked because it simply asked again — so the page now
+       asks again itself, twice, a moment apart. Only reads: a save that timed
+       out may have landed, so a save is never repeated here. */
+    var tries = method === 'GET' ? 3 : 1;
+    function once(n) {
+      return fetch(BASE + path, opts).then(readBody, function (e) {
+        if (n > 1) return { ok: false, status: 0, body: { error: 'OFFLINE', message: String(e && e.message || e) } };
+        throw e;
+      }).then(function (r) {
+        if (n > 1 && (r.status === 0 || r.status === 502 || r.status === 503 || r.status === 504)) {
+          return new Promise(function (done) { setTimeout(done, (tries - n + 1) * 700 + Math.random() * 400); })
+            .then(function () { return once(n - 1); });
+        }
+        if (r.status === 401) { tokDrop(); throw tag(fail(401, r.body), proj); }
+        if (!r.ok) throw tag(fail(r.status, r.body), proj);
+        return r.body;
+      });
+    }
+    return once(tries);
   }
 
   /* ---- reading ----------------------------------------------------------- */

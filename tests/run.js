@@ -344,39 +344,19 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
-  await check('Change Password is in the left nav and changes it', async () => {
-    if (read(path.join(DIR, 'index.html')).indexOf('openChangePassword') < 0) return;
-    const store = mkStore();
-    const s = await open(opts({ who: 'casey', store }));
+  /* Change Password was built in 20261122g and taken out in 20261122h (Jonna, 22 Nov 2026):
+     Forgot your password? is how anyone sets a new one. */
+  await check('No Change Password in the left nav; Forgot your password? is the way to set a new one', async () => {
+    const html = read(path.join(DIR, 'index.html'));
+    if (html.indexOf('si-cview') < 0 || html.indexOf('openChangePassword') >= 0) return;   // before 20261122g, or 20261122g itself
+    const s = await open(opts({ who: 'casey' }));
     const p = s.page;
     await wait(s, 2500);
-    const order = await p.$$eval('.hq nav .railout, .hq nav .railsec, .hq nav button', els => els.map(e => (e.textContent || '').trim()).filter(Boolean));
-    const iPw = order.indexOf('Change Password'), iOut = order.indexOf('Sign Out');
-    expect(iPw >= 0 && iOut > iPw, 'Change Password should sit above Sign Out: ' + order.join(' | '));
-    await p.click('#rail-pw'); await wait(s, 200);
-    expect(await p.$('#pwdlg'), 'the Change Password dialog did not open');
-    await p.fill('#pw-cur', 'wrong'); await p.fill('#pw-new', 'casey-garden-lamp'); await p.fill('#pw-new2', 'casey-garden-lamp');
-    expect((await p.$$('#pw-checks li.pass')).length === 2, 'a password with their name in it should fail that check');
-    await p.click('#pw-go'); await wait(s, 300);
-    expect(!store.pwChanged, 'a password that fails the checks should not be sent');
-    await p.fill('#pw-new', 'river-garden-lamp-77'); await p.fill('#pw-new2', 'river-garden-lamp-77');
-    expect((await p.$$('#pw-checks li.pass')).length === 3, 'all three checks should pass');
-    await p.click('#pw-go'); await wait(s, 800);
-    expect(/current password is not right/.test(await p.textContent('#pw-note')), 'a wrong current password should be shown as the relay says it');
-    await p.fill('#pw-cur', 'right'); await p.click('#pw-go'); await wait(s, 800);
-    expect(store.pwChanged === 'river-garden-lamp-77', 'the new password was not sent');
-    expect(/Password changed/.test(await p.textContent('#pw-note')), 'no confirmation after changing it');
-    const st = await p.evaluate(() => ({ sess: JSON.parse(sessionStorage.getItem('resources:service-orders:session') || 'null'),
-      dev: JSON.parse(localStorage.getItem('resources:devices') || '{}') }));
-    expect(st.sess && st.sess.token === 't2' && st.sess.access && st.sess.name, 'the new session should replace the old one and keep the name and access');
-    expect(st.dev['casey@northwind.test'] === 'dev-pw', 'this browser should stay remembered');
-    expect(!('device' in st.sess), 'the browser token should not be in the session');
-    const stored = await p.evaluate(() => JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage)));
-    expect(stored.indexOf('river-garden-lamp-77') < 0 && stored.indexOf('"right"') < 0, 'a password was kept in the browser');
-    await wait(s, 2600);
-    expect(!(await p.$('#pwdlg')), 'the dialog should close itself after the confirmation');
-    // The relay's refusal of the wrong current password is expected, not an error.
-    noErrors(s.errs.filter(e => !/status of 400/.test(e))); await s.close();
+    const items = await p.$$eval('.hq nav button', els => els.map(e => (e.textContent || '').trim()));
+    expect(items.indexOf('Change Password') < 0, 'Change Password should not be in the left nav: ' + items.join(' | '));
+    const iHelp = items.indexOf('Help'), iOut = items.indexOf('Sign Out');
+    expect(iHelp >= 0 && iOut === iHelp + 1, 'Help should sit directly above Sign Out: ' + items.join(' | '));
+    noErrors(s.errs); await s.close();
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {

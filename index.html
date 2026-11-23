@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122j">
+<meta name="so-version" content="20261123a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -13851,6 +13851,15 @@ function loadCompanyCore(slug) {
                          : '<span class="pill quiet">none</span>');
         }).join('') + '</div>';
 
+      /* ⚠ EXECUTED ON is the day the last party signed in DocuSign, not the day it
+         is filed here (Jonna, 23 Nov 2026: TruDigital's letter, signed 11/9, was
+         recorded as executed on the day it was filed). Today until changed. */
+      function execDateField(slug, flav, val) {
+        var today = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+        return '<div class="f"><label>Executed On (Last Signature)</label>' +
+          '<input type="date" class="exec-date" data-slug="' + esc(slug) + '" data-flav="' + esc(flav) +
+          '" max="' + today + '" value="' + esc(val || today) + '"></div>';
+      }
       var archive = '<p class="lede">Each MSA extension letter, ready to download and send to ' +
         'DocuSign \u2014 and the place the executed copy comes back to afterwards. The executed ' +
         'archive is yours and the contracting company\u2019s; it is not returned to the ' +
@@ -13901,6 +13910,7 @@ function loadCompanyCore(slug) {
                 '<div class="f"><label>DocuSign Envelope ID</label>' +
                 '<input type="text" class="exec-env" data-flav="' + esc(l.msaFlavour) +
                 '" value="' + esc(ex.envelopeId || '') + '"></div>' +
+                execDateField(C.slug, l.msaFlavour, ex.executedOn) +
                 '<button class="gobtn exec-go" type="button" data-slug="' + esc(C.slug) +
                 '" data-flav="' + esc(l.msaFlavour) + '">Replace It</button></div>' +
                 '<p class="fineprint">The previous copy stays in the repository\u2019s history \u2014 ' +
@@ -13916,6 +13926,7 @@ function loadCompanyCore(slug) {
               esc(C.slug) + '" data-flav="' + esc(l.msaFlavour) + '"></div>' +
               '<div class="f"><label>DocuSign Envelope ID</label>' +
               '<input type="text" class="exec-env" data-flav="' + esc(l.msaFlavour) + '"></div>' +
+              execDateField(C.slug, l.msaFlavour, '') +
               '<button class="gobtn exec-go" type="button" data-slug="' + esc(C.slug) +
               '" data-flav="' + esc(l.msaFlavour) + '">File It</button></div>' +
               '<p class="fineprint">Upload the whole DocuSign output, including the Certificate of ' +
@@ -15016,7 +15027,11 @@ function loadCompanyCore(slug) {
           var slug = b.dataset.slug, flav = b.dataset.flav;
           var f = document.querySelector('.exec-file[data-slug="' + slug + '"][data-flav="' + flav + '"]');
           var env = document.querySelector('.exec-env[data-flav="' + flav + '"]');
+          var dt = document.querySelector('.exec-date[data-slug="' + slug + '"][data-flav="' + flav + '"]');
+          var on = dt && /^\d{4}-\d{2}-\d{2}$/.test(dt.value) ? dt.value : '';
           if (!f || !f.files || !f.files[0]) { toast('Choose the executed PDF first'); return; }
+          if (!on) { toast('Enter the date it was executed (the last signature in DocuSign)'); if (dt) dt.focus(); return; }
+          if (on > (dt.max || on)) { toast('The executed date cannot be in the future'); dt.focus(); return; }
           var file = f.files[0];
           b.disabled = true; b.textContent = 'Filing…';
           var fr = new FileReader();
@@ -15040,7 +15055,7 @@ function loadCompanyCore(slug) {
                   next.agreements = (next.agreements || []).filter(function (a) {
                     return a.msaFlavour !== flav;
                   }).concat([{
-                    msaFlavour: flav, executedOn: new Date().toISOString().slice(0, 10),
+                    msaFlavour: flav, executedOn: on,
                     envelopeId: (env && env.value.trim()) || '', file: path,
                     filedBy: ME.name, filedOn: new Date().toISOString()
                   }]);

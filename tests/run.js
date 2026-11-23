@@ -440,6 +440,27 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* Jonna, 23 Nov 2026: an executed letter is recorded with the day it was signed, not the day it was filed (20261123a). */
+  await check('Filing an executed MSA letter records the date it was executed', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('class="exec-date"') < 0) return;
+    const store = mkStore();
+    const s = await open(opts({ who: 'admin', store }));
+    const p = s.page;
+    await wait(s, 3500); await nav(p, 'Agreements');
+    await p.click('[data-panel="arch-northwind"]'); await wait(s, 500);
+    expect(await p.$('.exec-date[data-slug="northwind"]'), 'the filing form has no Executed On date');
+    await p.setInputFiles('.exec-file[data-slug="northwind"]', path.join(__dirname, 'sample-invoice.pdf'));
+    await p.fill('.exec-env[data-flav="Consulting"]', 'env-123');
+    await p.fill('.exec-date[data-slug="northwind"]', '2099-01-01');
+    await p.click('.exec-go[data-slug="northwind"]'); await wait(s, 800);
+    expect(!store.S['so-northwind|agreements/northwind.json'], 'a date in the future should not be filed');
+    await p.fill('.exec-date[data-slug="northwind"]', '2026-11-09');
+    await p.click('.exec-go[data-slug="northwind"]'); await wait(s, 2500);
+    const rec = ((store.S['so-northwind|agreements/northwind.json'] || {}).agreements || []).find(a => a.msaFlavour === 'Consulting');
+    expect(rec && rec.executedOn === '2026-11-09' && rec.envelopeId === 'env-123', 'the record should carry the date it was executed: ' + JSON.stringify(rec));
+    noErrors(s.errs); await s.close();
+  });
+
   await check('Help shows the version, and the Test Copy says what it is', async () => {
     const s = await open(opts({ who: 'admin' }));
     await wait(s, 3500); await nav(s.page, 'Help');

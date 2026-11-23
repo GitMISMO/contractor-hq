@@ -461,6 +461,19 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* Jonna, 23 Nov 2026 (20261123b): opening Contractor HQ showed "GITHUB — so-phoenix" until a refresh. */
+  await check('A read GitHub turns away is asked again, so opening never needs a refresh', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('A READ THAT GITHUB REFUSES IS TRIED AGAIN') < 0) return;
+    const store = mkStore(); store.flaky = 3;
+    const s = await open(opts({ who: 'admin', store }));
+    await wait(s, 6000);
+    const text = await s.page.evaluate(() => document.body.innerText);
+    expect(store.refused === 3, 'the pretend relay should have refused three reads, refused ' + store.refused);
+    expect(!/Something Went Wrong/i.test(text), 'a refused read still showed the error screen');
+    expect(/Status Board/.test(text), 'the Status Board should open');
+    noErrors(s.errs.filter(e => !/status of 502/.test(e))); await s.close();
+  });
+
   await check('Help shows the version, and the Test Copy says what it is', async () => {
     const s = await open(opts({ who: 'admin' }));
     await wait(s, 3500); await nav(s.page, 'Help');

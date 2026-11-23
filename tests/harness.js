@@ -141,6 +141,8 @@ function relay(route, req, url, u, store) {
   }
   const acc = u.access[proj];
   if (!acc) return json(403, { error: 'NO_ACCESS' });
+  // A relay just woken up that GitHub turns away for its first few reads (store.flaky = how many).
+  if (m === 'GET' && store.flaky > 0) { store.flaky--; store.refused = (store.refused || 0) + 1; return json(502, { error: 'GITHUB', status: 403 }); }
   const key = proj + '|' + rest;
   if (kind === 'file' && m === 'GET') {
     if (proj.endsWith('-hours') && !/^(orders-public|hours|notify)\//.test(rest)) return json(403, { error: 'PATH_NOT_READABLE' });

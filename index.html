@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122h">
+<meta name="so-version" content="20261122i">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -4060,11 +4060,16 @@ window.H = (function () {
     /* ⚠ Help is held back and drawn last, just above Sign Out (Jonna, 22 Nov
        2026: from the bottom up, Dark Mode, Sign Out, Help). */
     var helpSec = null;
+    /* ⚠ The Status Board is held back too and drawn FIRST, at the very top of
+       the rail, above every group (Jonna, 22 Nov 2026). It used to fall to the
+       bottom under Everything Else. */
+    var boardSec = null;
     Array.prototype.forEach.call(secs, function (sec) {
       var h0 = sec.querySelector('.psec-h');
       if (!h0) return;
       var nm = sec.getAttribute('data-name') || (h0.querySelector('span') || {}).textContent || '';
       if (nm === 'Help') { helpSec = sec; return; }
+      if (nm === 'Status Board') { boardSec = sec; return; }
       buckets[railGroupOf(nm)].push(sec);
     });
     /* ⚠ One group only: no headings at all. A single "Waiting on You" label
@@ -4106,6 +4111,7 @@ window.H = (function () {
       });
       host.appendChild(b);
     }
+    if (boardSec) railSecBtn(boardSec);
     ordered.forEach(function (item) {
       if (item.head) {
         var hd = document.createElement('div');

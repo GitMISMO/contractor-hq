@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122g">
+<meta name="so-version" content="20261122h">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1774,15 +1774,6 @@ td .notefmt.fineprint{margin-top:6px}
 .modal-box h2{font-size:17px;font-weight:700;margin:0}
 .modal-box p{margin:6px 0 16px;color:var(--ink-2)}
 .modal-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
-/* Change Password (22 Nov 2026): the sign-in card's fields, and the shared
-   sign-in's live checks. */
-.pwbox .signfields{margin:0 0 12px}
-.pwbox #pw-note .note{margin:0 0 14px}
-.pwchecks{list-style:none;margin:0 0 16px;padding:0;font-size:12.5px;line-height:1.5}
-.pwchecks li{display:flex;gap:8px;align-items:flex-start;color:var(--ink-3)}
-.pwchecks li::before{content:"";flex:0 0 auto;width:12px;height:12px;margin-top:3px;border-radius:50%;border:2px solid var(--border-strong)}
-.pwchecks li.pass{color:var(--ink);background:none}
-.pwchecks li.pass::before{background:var(--good);border-color:var(--good)}
 .gobtn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
 .gobtn.danger:hover:not(:disabled){background:var(--bad-soft,var(--surface-3));color:var(--bad)}
 
@@ -2250,7 +2241,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
       localStorage.setItem(DEVICES, JSON.stringify(d));
     } catch (e) {}
   }
-  /* A successful sign-in (password, code, or a password change): remember the
+  /* A successful sign-in (password or code): remember the
      browser, and keep everything else as the session. The browser token never
      goes into the session itself. */
   function adoptSignIn(body, email, keep) {
@@ -2299,7 +2290,9 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
      The relay emails a one-hour, one-use link to /reset-password.html, and
      answers the same whether or not the account exists, so this reveals
      nothing about who has one. */
-  /* The account calls the shared MISMO sign-in makes, on the same path it
+  /* ⚠ No Change Password here (Jonna, 22 Nov 2026): Forgot your password? on
+     the sign-in card is how anyone sets a new one.
+     The account calls the shared MISMO sign-in makes, on the same path it
      uses ('hub'; sign-in is global). None of them saves anything. */
   function authPost(what, body, token) {
     var h = { 'Content-Type': 'application/json' };
@@ -2316,18 +2309,6 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
       return r;
     });
   }
-  /* Change Password while signed in. The relay signs the person out everywhere
-     else and hands back a new session for this tab. */
-  function changePassword(current, password) {
-    var s = session();
-    if (!s) return Promise.resolve({ ok: false, status: 401, body: {} });
-    return authPost('password', { current: current, password: password }, s.token).then(function (r) {
-      if (r.ok && r.body && r.body.token) { adoptSignIn(r.body, s.email, s); return { ok: true }; }
-      if (r.status === 401) tokDrop();
-      return r;
-    });
-  }
-
   function send(method, path, body) {
     var s = session();
     if (!s) return Promise.reject(fail(401, { error: 'NO_SESSION', message: 'Sign in again.' }));
@@ -2661,7 +2642,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
     readData: readData, writeData: writeData, updateData: updateData,
     base: BASE,
     boot: boot, whoami: whoami, loginAny: loginAny, forgot: forgot,
-    signInCode: signInCode, changePassword: changePassword,
+    signInCode: signInCode,
     login: login, signOut: signOut, signedIn: signedIn, session: session,
     read: read, readOr: readOr, readRaw: readRaw,
     commit: commit, update: update,
@@ -4163,27 +4144,11 @@ window.H = (function () {
         host.appendChild(a);
       });
     }
-    /* ⚠ CHANGE PASSWORD — Jonna, 22 Nov 2026, as the shared MISMO sign-in has
-       it. Kept above Help so the foot still reads, from the bottom up, Dark
-       Mode, Sign Out, Help. Hidden only when the relay says this account's
-       password is not self-service. */
     var sess = R.session();
-    var pwOn = !!(sess && sess.passwords !== false);
-    if (helpSec || pwOn) {
+    if (helpSec) {
       var sp = document.createElement('div');
       sp.className = 'railsep';
       host.appendChild(sp);
-    }
-    if (pwOn) {
-      var pw = document.createElement('button');
-      pw.type = 'button';
-      pw.className = 'railout';
-      pw.id = 'rail-pw';
-      pw.title = 'Change the password for ' + (sess.email || '');
-      pw.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/>' +
-        '<path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg><span>Change Password</span>';
-      pw.addEventListener('click', openChangePassword);
-      host.appendChild(pw);
     }
     if (helpSec) railSecBtn(helpSec);
     /* Signing out belongs where the person can always see it, and it should say
@@ -15618,79 +15583,6 @@ function loadCompanyCore(slug) {
      is decided here: the relay hands back an access map and the page draws what
      that map allows.  Passwords are never stored, never logged and never put
      anywhere but the one request that checks them. */
-  /* ---- Change Password (Jonna, 22 Nov 2026; as the shared MISMO sign-in) ----
-     The same rules the shared sign-in shows as you type: at least 13
-     characters, not your name, your email or "MISMO", and both entries match.
-     The relay has the last word; anything it refuses is shown as it says it. */
-  var PW_MIN = 13;
-  function pwChecks(pw, s, confirm) {
-    var low = String(pw || '').toLowerCase();
-    var parts = [String((s && s.email) || '').split('@')[0]].concat(String((s && s.name) || '').split(/\s+/)).concat(['mismo'])
-      .map(function (t) { return t.toLowerCase(); }).filter(function (t) { return t.length >= 3; });
-    var clean = low.length > 0 && !parts.some(function (t) { return low.indexOf(t) >= 0; });
-    return [
-      { ok: String(pw || '').length >= PW_MIN, text: 'At least ' + PW_MIN + ' characters. A few unrelated words make a strong password that\u2019s easy to remember.' },
-      { ok: clean, text: 'Doesn\u2019t include your name, your email or \u201cMISMO\u201d' },
-      { ok: confirm !== undefined && String(pw || '').length > 0 && confirm === pw, text: 'Both entries match' }
-    ];
-  }
-  function openChangePassword() {
-    var s = R.session();
-    if (!s) { start(); return; }
-    var old = document.getElementById('pwdlg'); if (old) old.parentNode.removeChild(old);
-    var m = document.createElement('div');
-    m.className = 'modal'; m.id = 'pwdlg';
-    m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'pw-t');
-    m.innerHTML = '<div class="modal-box pwbox"><h2 id="pw-t">Change Your Password</h2>' +
-      '<p>For <b>' + esc(s.email || '') + '</b>. Changing it signs you out everywhere else.</p>' +
-      '<div id="pw-note"></div>' +
-      '<div class="signfields">' +
-        '<div class="f"><label for="pw-cur">Current Password</label><input id="pw-cur" type="password" autocomplete="current-password"></div>' +
-        '<div class="f"><label for="pw-new">New Password</label><input id="pw-new" type="password" autocomplete="new-password"></div>' +
-        '<div class="f"><label for="pw-new2">New Password Again</label><input id="pw-new2" type="password" autocomplete="new-password"></div>' +
-      '</div>' +
-      '<ul class="pwchecks" id="pw-checks" aria-live="polite"></ul>' +
-      '<div class="modal-acts"><button type="button" class="gobtn ghost" id="pw-cancel">Cancel</button>' +
-      '<button type="button" class="gobtn" id="pw-go">Change Password</button></div></div>';
-    document.body.appendChild(m);
-    var cur = m.querySelector('#pw-cur'), nw = m.querySelector('#pw-new'), nw2 = m.querySelector('#pw-new2');
-    var go = m.querySelector('#pw-go'), note = m.querySelector('#pw-note'), checks = m.querySelector('#pw-checks');
-    function paint() {
-      checks.innerHTML = pwChecks(nw.value, s, nw2.value).map(function (c) {
-        return '<li class="' + (c.ok ? 'pass' : '') + '">' + esc(c.text) + '</li>'; }).join('');
-    }
-    function say(html, good) { note.innerHTML = '<div class="note ' + (good ? 'ok' : 'warn') + '">' + html + '</div>'; }
-    function close() { if (m.parentNode) m.parentNode.removeChild(m); }
-    nw.addEventListener('input', paint); nw2.addEventListener('input', paint); paint();
-    m.querySelector('#pw-cancel').addEventListener('click', close);
-    m.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); if (e.key === 'Enter' && e.target === nw2) go.click(); });
-    go.addEventListener('click', function () {
-      if (!cur.value) { say('<b>Enter your current password.</b>'); cur.focus(); return; }
-      if (!pwChecks(nw.value, s, nw2.value).every(function (c) { return c.ok; })) { say('The new password doesn\u2019t meet the checks yet.'); return; }
-      go.disabled = true; go.textContent = 'Changing\u2026';
-      R.changePassword(cur.value, nw.value).then(function (x) {
-        if (x.ok) {
-          say('<b>Password changed.</b> A confirmation is on its way to your email.', true);
-          go.style.display = 'none'; m.querySelector('#pw-cancel').textContent = 'Close';
-          setTimeout(close, 2200); return;
-        }
-        go.disabled = false; go.textContent = 'Change Password';
-        var b = x.body || {};
-        if (x.status === 400 && b.problems) { say(esc(b.problems.join(' '))); return; }
-        if (x.status === 401) { close(); start(); return; }   // the session ended: back to sign-in
-        if (x.status === 503 || x.status === 404) {
-          say('<b>Changing your own password is not switched on yet.</b> Email ' +
-            '<a href="mailto:jcritchley@mismo.org">Jonna Critchley</a> and she can reset it.'); return;
-        }
-        say(esc(b.message || ('That did not work (' + x.status + ').')));
-      }, function () {
-        go.disabled = false; go.textContent = 'Change Password';
-        say('<b>The sign-in service did not answer.</b> Check your connection and try again.');
-      });
-    });
-    setTimeout(function () { cur.focus(); }, 30);
-  }
-
   function signInView(note) {
     /* Signed out there is nothing to navigate to, so the rail and its search box
        go away entirely rather than sitting there empty. The masthead stays,

@@ -4,6 +4,10 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-23
+
+- Agreements: filing an executed MSA letter asks for the date it was executed (the last signature in DocuSign), today until changed and never in the future, instead of recording the day it was filed. Replace the Filed Copy shows and can correct it [20261123a]
+
 ## 2026-11-22
 
 - Sign-in: Contractor HQ now uses the shared MISMO sign-in, like every other MISMO tool. One sign-in covers them all (no second sign-in from the Other MISMO Tools links or from another tool), the name chip is at the top right with its menu, and the sign-in screen, Forgot your password? and the emailed sign-in code are the shared ones. The sign-in stays in the browser for up to eight hours or until they sign out, instead of ending when the tab closes. A reset started here still comes back here [20261122j]

@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-rs-gate>
 <head>
 <meta charset="utf-8">
 <!-- The page safety list: the only places this page may load code from or send data to.
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261122i">
+<meta name="so-version" content="20261122j">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
+<!-- The shared MISMO sign-in (Perry's), as every other tool uses it (Jonna, 22 Nov 2026):
+     one sign-in for every MISMO tool, and the name chip at the top right. -->
+<script src="/assets/session.js"></script>
 <link rel="apple-touch-icon" href="xp-icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1048,6 +1051,11 @@ button,input,select,textarea,optgroup{font-family:inherit}
    can never sit on top of a button lower down the page */
 .hqtop{pointer-events:none}
 .hqtop .theme-btn{pointer-events:auto}
+/* The shared sign-in's name chip, and the logo it makes a link home, as on every MISMO tool (22 Nov 2026). */
+.hqtop #rs-account, .hqtop [data-rs-home]{pointer-events:auto}
+#rs-account{display:inline-flex;align-items:center}
+/* On a phone the Expenses app's header has its own Sign Out and no room for the chip. */
+@media (max-width:560px){html.soxp #rs-account{display:none!important}}
 /* and leave room under it when something is scrolled into view */
 .psec,.psec-h,.row,.row-h,.gobtn,.ghost{scroll-margin-top:84px}
 .wrap{padding:22px 30px 90px;max-width:1500px;margin:0 auto}
@@ -2052,6 +2060,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   <span class="hqtop-r">
     <span class="who" id="who"></span>
     <span class="eyebrow-m">Programs &amp; Operations</span>
+    <span id="rs-account"></span>
   </span>
 </header>
 
@@ -2173,13 +2182,22 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   function lget(name) { try { return localStorage.getItem(NS + name); } catch (e) { return null; } }
   function lput(name, value) { try { localStorage.setItem(NS + name, value); } catch (e) {} }
   function ldrop(name) { try { localStorage.removeItem(NS + name); } catch (e) {} }
+  /* ⚠ THE SHARED MISMO SIGN-IN (Jonna, 22 Nov 2026). Contractor HQ used to keep
+     its own sign-in in this tab only. It now uses Perry's, like every other MISMO
+     tool: one sign-in for all of them, kept in this browser for up to eight hours
+     (or until they sign out), and the name chip at the top right. The session is
+     read from /assets/session.js and never written here; signing in and out is
+     done by that file. Tabs and the phone app share it, so APPMODE no longer
+     needs a copy of its own. */
+  function RS() { return global.ResourcesSession || null; }
   function tokGet() {
-    var raw = sget(TOKEN);
-    if (!raw && APPMODE) { raw = lget(KEEP); if (raw) sput(TOKEN, raw); }
-    return raw;
+    var r = RS(), s = r && r.current();
+    return s && s.token ? JSON.stringify(s) : null;
   }
-  function tokPut(v) { sput(TOKEN, v); if (APPMODE) lput(KEEP, v); }
-  function tokDrop() { sdrop(TOKEN); ldrop(KEEP); }
+  function tokDrop() { var r = RS(); if (r) r.signOut(); }
+  /* The tab-only sign-in this page kept before is cleared once, so no old token
+     is left lying in this browser. */
+  sdrop(TOKEN); ldrop(KEEP); void APPMODE;
 
   /* ---- the session ------------------------------------------------------- */
   /* What the relay hands back at sign-in: token, name, email, access, expiresAt.
@@ -2189,70 +2207,15 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
     var raw = tokGet();
     if (!raw) return null;
     var s;
-    try { s = JSON.parse(raw); } catch (e) { tokDrop(); return null; }
-    if (!s || !s.token) { tokDrop(); return null; }
-    /* A session handed over by the shared reset page carries the relay's
-       remembered-browser token too. It belongs with the shared sign-in's
-       remembered browsers, never in the session. */
-    if (s.device) { rememberDevice(s.email, s.device); delete s.device; tokPut(JSON.stringify(s)); }
+    try { s = JSON.parse(raw); } catch (e) { return null; }
+    if (!s || !s.token) return null;
     /* A token lasts four hours.  Checking the clock here means an expired session
        shows a sign-in rather than a wall of failed requests. */
-    if (s.expiresAt && new Date(s.expiresAt).getTime() <= Date.now()) { tokDrop(); return null; }
+    if (s.expiresAt && new Date(s.expiresAt).getTime() <= Date.now()) return null;
     return s;
   }
   function signedIn() { return !!session(); }
   function signOut() { tokDrop(); HEAD = {}; }
-
-  function login(project, email, password) {
-    return fetch(BASE + '/' + enc(project) + '/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password, device: deviceFor(email) || undefined })
-    }).then(readBody).then(function (r) {
-      if (!r.ok) throw tag(fail(r.status, r.body), project);
-      /* ⚠ TWO-STEP SIGN-IN (Jonna, 22 Nov 2026: "build how Perry has his").
-         After the right password the relay may email a six-digit code instead
-         of signing in. That is not a failure and not a session: it goes back to
-         the sign-in screen, which asks for the code. */
-      if (r.body && r.body.codeRequired && r.body.ticket && !r.body.token) {
-        return { codeRequired: true, ticket: r.body.ticket, email: email, password: password, project: project };
-      }
-      return adoptSignIn(r.body, email);
-    });
-  }
-
-  /* ---- remembered browsers (the shared sign-in's, Perry 16 Oct 2026) ----
-     After a sign-in code the relay hands back a token that lets this browser
-     skip the code for 30 days. It is kept exactly where the shared MISMO
-     sign-in keeps it ('resources:devices', per email, at most eight people),
-     so a browser remembered by one MISMO tool is remembered by all of them.
-     The relay decides whether one is still good; this only carries it. */
-  var DEVICES = 'resources:devices';
-  function devices() {
-    try { var d = JSON.parse(localStorage.getItem(DEVICES) || '{}'); return d && typeof d === 'object' ? d : {}; }
-    catch (e) { return {}; }
-  }
-  function deviceFor(email) { var t = devices()[String(email || '').toLowerCase()]; return typeof t === 'string' ? t : ''; }
-  function rememberDevice(email, token) {
-    if (!email || typeof token !== 'string' || !token) return;
-    try {
-      var d = devices(), k = String(email).toLowerCase(); delete d[k]; d[k] = token;
-      var keys = Object.keys(d); keys.slice(0, Math.max(0, keys.length - 8)).forEach(function (x) { delete d[x]; });
-      localStorage.setItem(DEVICES, JSON.stringify(d));
-    } catch (e) {}
-  }
-  /* A successful sign-in (password or code): remember the
-     browser, and keep everything else as the session. The browser token never
-     goes into the session itself. */
-  function adoptSignIn(body, email, keep) {
-    var b = JSON.parse(JSON.stringify(body || {}));
-    rememberDevice(b.email || email, b.device);
-    delete b.device;
-    if (keep) { b.name = b.name || keep.name; b.access = b.access || keep.access; }
-    tokPut(JSON.stringify(b));
-    HEAD = {};
-    return b;
-  }
 
   /* ---- requests ---------------------------------------------------------- */
   function enc(s) { return encodeURIComponent(String(s)); }
@@ -2290,25 +2253,6 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
      The relay emails a one-hour, one-use link to /reset-password.html, and
      answers the same whether or not the account exists, so this reveals
      nothing about who has one. */
-  /* ⚠ No Change Password here (Jonna, 22 Nov 2026): Forgot your password? on
-     the sign-in card is how anyone sets a new one.
-     The account calls the shared MISMO sign-in makes, on the same path it
-     uses ('hub'; sign-in is global). None of them saves anything. */
-  function authPost(what, body, token) {
-    var h = { 'Content-Type': 'application/json' };
-    if (token) h.Authorization = 'Bearer ' + token;
-    return fetch(BASE + '/hub/auth/' + what, {
-      method: 'POST', cache: 'no-store', headers: h, body: JSON.stringify(body)
-    }).then(readBody);
-  }
-  function forgot(email) { return authPost('forgot', { email: email }); }
-  /* The six-digit code from the email. Signs in when it is right. */
-  function signInCode(ticket, code, email) {
-    return authPost('code', { ticket: ticket, code: code }).then(function (r) {
-      if (r.ok && r.body && r.body.token) { adoptSignIn(r.body, email); return { ok: true }; }
-      return r;
-    });
-  }
   function send(method, path, body) {
     var s = session();
     if (!s) return Promise.reject(fail(401, { error: 'NO_SESSION', message: 'Sign in again.' }));
@@ -2451,54 +2395,6 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
      keep the first that works.  A contractor succeeds on their own key; MISMO
      staff succeed on the first.  Wrong password fails on every key and is
      reported once, as one failure, not five. */
-  function loginAny(email, password) {
-    var keys = (CFG.projects || []).slice();
-    if (!keys.length) return Promise.reject(fail(0, { message: 'No project keys are configured for this page.' }));
-    var lastErr = null, unkErr = null, sawForbidden = false, sawUnknown = false;
-    function attempt(i) {
-      if (i >= keys.length) {
-        /* ⚠ Every key refused, and WHY matters — these three are different
-           things and only one of them is the person's fault.
-
-             403 on some key   the password is RIGHT; the relay authenticated
-                               them and then said they have no access to that
-                               project.  Their account simply has no service
-                               orders on it.  Never call this a bad password.
-             UNKNOWN_PROJECT   the relay has never heard of these projects.  A
-                               setup gap, and nothing the person can do.
-             401 everywhere    genuinely not recognised. */
-        /* ⚠ UNKNOWN_PROJECT is checked FIRST and on purpose.  A relay that has
-           never heard of a project cannot have an opinion about who may reach
-           it, so a 403 collected alongside one says nothing about the account.
-           Reporting the 403 first tells a perfectly good account that it has no
-           service orders, and points the person at an email that fixes
-           nothing. */
-        if (sawUnknown) throw (unkErr || lastErr);
-        if (sawForbidden) {
-          var ne = fail(403, { error: 'NO_SERVICE_ORDERS',
-            message: 'This account has no service orders on it.' });
-          ne.noServiceOrders = true;
-          throw ne;
-        }
-        throw lastErr || fail(401, { error: 'NO_ACCESS',
-          message: 'That email and password were not recognised.' });
-      }
-      return login(keys[i], email, password).catch(function (e) {
-        if (e.status === 403) { sawForbidden = true; lastErr = e; return attempt(i + 1); }
-        if (e.code === 'UNKNOWN_PROJECT') { sawUnknown = true; unkErr = unkErr || e; lastErr = e; return attempt(i + 1); }
-        /* ⚠ A WRONG PASSWORD STOPS HERE (6 Nov 2026). Since sign-in moved to the
-           shared account list, the password is checked against the PERSON, not the
-           project — so a 401 on one key is the same 401 on every key, and each try
-           counts toward the five-wrong-passwords lock. Trying the next key used to
-           turn one typo into five wrong passwords and lock the account on the
-           first press (Erin, 6 Nov). Only a 403 (no access to THIS key) and an
-           unknown project move on to the next key. */
-        throw e;
-      });
-    }
-    return Promise.resolve().then(function () { return attempt(0); });
-  }
-
   /* ---- who the signed-in person is --------------------------------------
      The old relay had a /whoami.  This one does not, so the answer is worked
      out from the access map the sign-in returns — which comes FROM the relay
@@ -2641,9 +2537,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
   global.MISMO_RELAY = {
     readData: readData, writeData: writeData, updateData: updateData,
     base: BASE,
-    boot: boot, whoami: whoami, loginAny: loginAny, forgot: forgot,
-    signInCode: signInCode,
-    login: login, signOut: signOut, signedIn: signedIn, session: session,
+    boot: boot, whoami: whoami, signOut: signOut, signedIn: signedIn, session: session,
     read: read, readOr: readOr, readRaw: readRaw,
     commit: commit, update: update,
     jsonFile: jsonFile, binaryFile: binaryFile,
@@ -6786,7 +6680,7 @@ function loadCompanyCore(slug) {
                 : '<span class="pill">Awaiting Signature</span>');
           }).join('') + '</div>';
 
-        whoEl.innerHTML = esc(who().name) + ' <i>·</i> ' + esc(F.company);
+        whoEl.innerHTML = esc(F.company);
         /* ---- hours -------------------------------------------------------
            The person record is what says whether this account logs time and
            against which orders.  ⚠ An account with no record is NOT quietly
@@ -12720,7 +12614,7 @@ function loadCompanyCore(slug) {
               }).join('');
           }).join('') + '</div>';
 
-      whoEl.innerHTML = esc(who().name) + ' <i>·</i> ' + esc(who().title);
+      whoEl.innerHTML = esc(who().title);
       say(sect('Awaiting Your Approval', total, body, true) +
         sect('Already Approved', done,
           '<p class="lede">' + done + ' ' + (done === 1 ? 'order has' : 'orders have') +
@@ -12868,7 +12762,7 @@ function loadCompanyCore(slug) {
               }).join('');
           }).join('') + '</div>';
 
-      whoEl.innerHTML = esc(who().name) + ' <i>·</i> ' + esc(who().title);
+      whoEl.innerHTML = esc(who().title);
       say(sect('Awaiting Your Decision', total, body, true) +
         sect('Already Decided', list.reduce(function (a, C) {
           return a + C.F.orders.filter(function (o) {
@@ -14042,7 +13936,7 @@ function loadCompanyCore(slug) {
                 : '<span class="pill">Awaiting Signature</span>');
         }).join('') + '</div>';
 
-      whoEl.innerHTML = esc(ME.name) + ' <i>·</i> ' + esc(ME.title);
+      whoEl.innerHTML = esc(ME.title);
       /* Hours are read for every company in one go.  ⚠ They are read SEPARATELY
          from the orders rather than folded into the same request, so a company
          whose hours cannot be read never takes the orders down with it —
@@ -15536,12 +15430,20 @@ function loadCompanyCore(slug) {
     if (e && e.status === 409) { toast('Somebody else saved first — reloading'); return; }
     if (e && e.needsLogin) { signInView(); return; }
     /* A session that has run out, or been withdrawn, is not an error the person
-       can do anything about except sign in again — so say that, and show the
-       form rather than a dead end. */
-    if (e && e.closed) {
+       can do anything about except sign in again — so show the sign-in. */
+    if (e && e.closed && e.status === 401) {
       R.signOut();
-      signInView('<b>Your session has ended.</b> Sessions last four hours. ' +
-        'Sign in again to carry on \u2014 nothing you saved has been lost.');
+      signInView();
+      return;
+    }
+    /* ⚠ A 403 is "not this", never "not you" (22 Nov 2026). The sign-in is
+       shared with every MISMO tool now, so signing someone out here would sign
+       them out of all of them for something only this page was refused. */
+    if (e && e.closed) {
+      shut('You Do Not Have Access to This',
+        'You are signed in as <b>' + esc((R.session() || {}).email || '') + '</b>, and the relay ' +
+        'refused this account for ' + esc(e.project || 'this company') + '. Nothing has been changed. ' +
+        'Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a> if you should have it.');
       return;
     }
     /* Anything else is this page going wrong, not the person. Say so plainly and
@@ -15589,271 +15491,40 @@ function loadCompanyCore(slug) {
      is decided here: the relay hands back an access map and the page draws what
      that map allows.  Passwords are never stored, never logged and never put
      anywhere but the one request that checks them. */
-  function signInView(note) {
-    /* Signed out there is nothing to navigate to, so the rail and its search box
-       go away entirely rather than sitting there empty. The masthead stays,
-       because the one thing this screen must do is say whose tool it is. */
+  /* ---- signing in: the shared MISMO sign-in (Jonna, 22 Nov 2026) ----------
+     Perry's whole-page sign-in screen, as every other MISMO tool shows it, with
+     Forgot your password? and the emailed sign-in code. Once someone is signed
+     in, start() carries on exactly as before. */
+  var SIGNIN = { toolName: 'Contractor HQ', title: 'Contractor HQ', eyebrow: 'Programs & Operations' };
+  function shared() { return window.ResourcesSession || null; }
+  function signInView() {
     document.body.classList.add('signedout');
     whoEl.textContent = '';
-    say(
-      '<div class="signwrap"><div class="signcard">' +
-        '<div class="signmark">' +
-          '<svg class="wordmark" role="img" aria-label="MISMO" viewBox="0 0 708 108"><use href="#mismo-logo"/></svg>' +
-        '</div>' +
-        '<h2>Contractor HQ</h2>' +
-        '<p class="signsub">Your service orders and agreements with MISMO, the hours and expenses ' +
-        'logged against them, and your invoices.</p>' +
-        '<div id="si-note" class="signnote">' + (note ? '<div class="note warn">' + note + '</div>' : '') + '</div>' +
-        '<div id="si-view">' +
-        '<div class="signfields">' +
-          '<div class="f"><label for="si-email">Email</label>' +
-            '<input type="email" id="si-email" autocomplete="username" spellcheck="false" ' +
-            'autocapitalize="off" placeholder="you@yourcompany.com"></div>' +
-          '<div class="f"><label for="si-pass">Password</label>' +
-            '<input type="password" id="si-pass" autocomplete="current-password" ' +
-            'placeholder="paste the password you were sent"></div>' +
-        '</div>' +
-        '<button class="signforgot" type="button" id="si-forgot">Forgot your password?</button>' +
-        '<button class="signgo" type="button" id="si-go">Sign In</button>' +
-        '</div>' +
-        /* ⚠ FORGOT YOUR PASSWORD — Jonna, 22 Nov 2026: the reset the other MISMO
-           tools have. The same card, switched to asking for an email. */
-        '<div id="si-fview" hidden>' +
-        '<p class="signsub" style="margin-bottom:14px"><b>Reset your password.</b> Enter the email your ' +
-          'account uses and we will email you a link to set a new one. It works once, for one hour.</p>' +
-        '<div class="signfields">' +
-          '<div class="f"><label for="si-femail">Email</label>' +
-            '<input type="email" id="si-femail" autocomplete="username" spellcheck="false" ' +
-            'autocapitalize="off" placeholder="you@yourcompany.com"></div>' +
-        '</div>' +
-        '<button class="signgo" type="button" id="si-fgo">Send Reset Link</button>' +
-        '<button class="signback" type="button" id="si-fback">Back to Sign In</button>' +
-        '</div>' +
-        /* ⚠ THE SIGN-IN CODE — Jonna, 22 Nov 2026: two-step sign-in as the shared
-           MISMO sign-in has it. Never submits itself: two wrong codes lock the
-           account. */
-        '<div id="si-cview" hidden>' +
-        '<p class="signsub" style="margin-bottom:14px" id="si-cnote"></p>' +
-        '<div class="signfields">' +
-          '<div class="f"><label for="si-code">Sign-In Code</label>' +
-            '<input type="text" id="si-code" inputmode="numeric" autocomplete="one-time-code" ' +
-            'maxlength="9" spellcheck="false" placeholder="123456"></div>' +
-        '</div>' +
-        '<button class="signgo" type="button" id="si-cgo">Sign In</button>' +
-        '<button class="signback" type="button" id="si-cnew">Send a New Code</button>' +
-        '<button class="signback" type="button" id="si-cback">Back to Sign In</button>' +
-        '</div>' +
-        '<p class="signfine">' + (document.documentElement.classList.contains('soxp')
-          ? 'You stay signed in on this phone for eight hours, or until you sign out.'
-          : 'Your session lasts eight hours and ends when you close this tab.') + '<br>' +
-        'No account yet? Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a>.</p>' +
-        '<p class="signfine buildline">Build ' + esc(BUILD) + '</p>' +
-      '</div></div>');
-
-    var emailEl = document.getElementById('si-email');
-    var passEl  = document.getElementById('si-pass');
-    var goEl    = document.getElementById('si-go');
-    var noteEl  = document.getElementById('si-note');
-    var viewEl  = document.getElementById('si-view');
-    var fviewEl = document.getElementById('si-fview');
-    var femailEl = document.getElementById('si-femail');
-    var fgoEl   = document.getElementById('si-fgo');
-    var cviewEl = document.getElementById('si-cview');
-    var codeEl  = document.getElementById('si-code');
-    var cgoEl   = document.getElementById('si-cgo');
-    var cnewEl  = document.getElementById('si-cnew');
-    var codeFor = null;   // the email, password and ticket, kept only while this screen is open
-    if (emailEl) emailEl.focus();
-
-    function showForgot() {
-      viewEl.hidden = true; fviewEl.hidden = false;
-      if (noteEl) noteEl.innerHTML = '';
-      femailEl.value = (emailEl.value || '').trim();
-      fgoEl.style.display = ''; fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
-      setTimeout(function () { (femailEl.value ? fgoEl : femailEl).focus(); }, 20);
+    var RS = shared();
+    if (!RS) {
+      shut('Sign-In Could Not Load',
+        'The MISMO sign-in did not load, so there is nothing to sign in to yet. ' +
+        'Check your connection and reload the page. If it keeps happening, email ' +
+        '<a href="mailto:jcritchley@mismo.org">Jonna Critchley</a>.');
+      return;
     }
-    function showSignIn() {
-      fviewEl.hidden = true; cviewEl.hidden = true; viewEl.hidden = false; codeFor = null;
-      if (noteEl) noteEl.innerHTML = '';
-      if (femailEl.value && !emailEl.value) emailEl.value = femailEl.value;
-      (emailEl.value ? passEl : emailEl).focus();
-    }
-    function sendReset() {
-      var em = (femailEl.value || '').trim().toLowerCase();
-      if (!em || em.indexOf('@') < 0) {
-        if (noteEl) noteEl.innerHTML = '<div class="note warn"><b>Enter your email.</b> The one your account was set up with.</div>';
-        femailEl.focus(); return;
-      }
-      fgoEl.disabled = true; fgoEl.textContent = 'Sending\u2026';
-      if (noteEl) noteEl.innerHTML = '';
-      /* ⚠ Where to come back to. The reset page is shared by every MISMO tool
-         and otherwise lands people on the Resources home page; this note (in
-         this browser only, for two hours) brings them back here, signed in. */
-      try {
-        localStorage.setItem('resources:reset-return', JSON.stringify({ path: location.pathname,
-          session: 'resources:service-orders:session', email: em, at: Date.now() }));
-      } catch (e) {}
-      R.forgot(em).then(function (x) {
-        if (x.ok) {
-          noteEl.innerHTML = '<div class="note ok"><b>Check your email.</b> If there is an account for ' +
-            esc(em) + ', a link to set a new password is on its way. It works once, for one hour. ' +
-            'Not there in a few minutes? Check your junk folder.</div>';
-          fgoEl.style.display = 'none'; return;
-        }
-        fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
-        if (x.status === 503 || x.status === 404) {
-          noteEl.innerHTML = '<div class="note warn"><b>Resetting your own password is not switched on yet.</b> ' +
-            'Email <a href="mailto:jcritchley@mismo.org">Jonna Critchley</a> and she can reset it.</div>';
-          return;
-        }
-        noteEl.innerHTML = '<div class="note warn">' + esc((x.body && x.body.message) ||
-          ('That did not work (' + x.status + '). Try again.')) + '</div>';
-      }, function () {
-        fgoEl.disabled = false; fgoEl.textContent = 'Send Reset Link';
-        noteEl.innerHTML = '<div class="note warn"><b>The sign-in service did not answer.</b> ' +
-          'Check your connection and try again.</div>';
-      });
-    }
-    document.getElementById('si-forgot').addEventListener('click', showForgot);
-    document.getElementById('si-fback').addEventListener('click', showSignIn);
-    fgoEl.addEventListener('click', sendReset);
-    femailEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') sendReset(); });
-    /* A "Reset your password" button inside a warning opens the same view. */
-    if (noteEl) noteEl.addEventListener('click', function (ev) {
-      var b = ev.target.closest && ev.target.closest('[data-si-reset]');
-      if (b) { ev.preventDefault(); showForgot(); }
-    });
-
-    function warn(html) {
-      if (noteEl) noteEl.innerHTML = '<div class="note warn">' + html + '</div>';
-      goEl.disabled = false;
-      goEl.textContent = 'Sign In';
-    }
-
-    function showCode(res) {
-      codeFor = res;
-      viewEl.hidden = true; fviewEl.hidden = true; cviewEl.hidden = false;
-      if (noteEl) noteEl.innerHTML = '';
-      document.getElementById('si-cnote').innerHTML = 'We emailed a six-digit code to <b>' + esc(res.email) +
-        '</b>. It works once, for 10 minutes, and this browser will be remembered for 30 days.';
-      codeEl.value = ''; codeEl.disabled = false; codeEl.parentNode.style.display = '';
-      cgoEl.style.display = ''; cnewEl.style.display = ''; cgoEl.disabled = false; cgoEl.textContent = 'Sign In';
-      setTimeout(function () { codeEl.focus(); }, 20);
-    }
-    function codeNote(html, good) {
-      if (noteEl) noteEl.innerHTML = '<div class="note ' + (good ? 'ok' : 'warn') + '">' + html + '</div>';
-    }
-    function sendCode() {
-      if (!codeFor) return;
-      var c = (codeEl.value || '').replace(/\D/g, '');
-      if (c.length !== 6) { codeNote('<b>Enter the six-digit code</b> from your email.'); codeEl.focus(); return; }
-      cgoEl.disabled = true; cgoEl.textContent = 'Checking\u2026';
-      if (noteEl) noteEl.innerHTML = '';
-      R.signInCode(codeFor.ticket, c, codeFor.email).then(function (x) {
-        if (x.ok) { codeFor = null; document.body.classList.remove('signedout'); start(); return; }
-        cgoEl.disabled = false; cgoEl.textContent = 'Sign In';
-        var b = x.body || {};
-        if (x.status === 423) {
-          codeNote('<b>Your account is locked.</b> ' + esc(b.message || 'Check your email for a link to set a new password.') +
-            '<br><button type="button" class="signlink" data-si-reset>Reset Your Password</button>');
-          codeEl.value = ''; codeEl.disabled = true; codeEl.parentNode.style.display = 'none';
-          cgoEl.style.display = 'none'; cnewEl.style.display = 'none';
-          return;
-        }
-        if (b.error === 'OLD_CODE') { codeNote(esc(b.message || 'That is an older code. Use the one in your newest email.')); codeEl.select(); return; }
-        if (b.error === 'WRONG_CODE' || b.error === 'CODE_EXPIRED') {
-          codeNote(esc(b.message || 'That code did not work.')); codeEl.value = ''; codeEl.focus(); return;
-        }
-        codeNote(esc(b.message || ('That did not work (' + x.status + '). Try again.')));
-      }, function () {
-        cgoEl.disabled = false; cgoEl.textContent = 'Sign In';
-        codeNote('<b>The sign-in service did not answer.</b> Check your connection and try again.');
-      });
-    }
-    /* "Send a New Code" repeats the password step with what was typed. */
-    function newCode() {
-      if (!codeFor) return;
-      cnewEl.disabled = true;
-      if (noteEl) noteEl.innerHTML = '';
-      R.loginAny(codeFor.email, codeFor.password).then(function (res) {
-        cnewEl.disabled = false;
-        if (res && res.codeRequired) {
-          codeFor = res; codeEl.value = ''; codeEl.focus();
-          codeNote('<b>A new code is on its way.</b> Use the one in your newest email.', true);
-          return;
-        }
-        codeFor = null; document.body.classList.remove('signedout'); start();
-      }, function (e) {
-        cnewEl.disabled = false;
-        codeNote(esc((e && e.message) || 'A new code could not be sent.') + ' Try again in a minute.');
-      });
-    }
-    cgoEl.addEventListener('click', sendCode);
-    codeEl.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') sendCode(); });
-    cnewEl.addEventListener('click', newCode);
-    document.getElementById('si-cback').addEventListener('click', function () { passEl.value = ''; showSignIn(); });
-    function go() {
-      var email = (emailEl.value || '').trim();
-      var pass  = passEl.value || '';
-      if (!email || !pass) {
-        warn('<b>Both are needed.</b> Type the email your account was set up with and the ' +
-             'password you were sent.');
-        (email ? passEl : emailEl).focus();
-        return;
-      }
-      goEl.disabled = true;
-      goEl.textContent = 'Checking…';
-      if (noteEl) noteEl.innerHTML = '';
-      R.loginAny(email, pass).then(function (res) {
-        if (res && res.codeRequired) { goEl.disabled = false; goEl.textContent = 'Sign In'; showCode(res); return; }
-        document.body.classList.remove('signedout');
-        start();
-      }).catch(function (e) {
-        if (e && e.status === 502 && e.code === 'CODE_NOT_SENT') {
-          warn(esc(e.message || 'The sign-in code could not be sent.') + ' Try again in a minute.');
-          return;
-        }
-        if (e && e.noServiceOrders) {
-          warn('<b>Your password is fine.</b> This account is recognised, but it has no service ' +
-               'orders on it yet \u2014 service orders are a separate permission from MISMO\u2019s ' +
-               'other tools. <b>Email Jonna Critchley</b> at ' +
-               '<a href="mailto:jcritchley@mismo.org">jcritchley@mismo.org</a> and she can add it.');
-          return;
-        }
-        if (e && e.code === 'UNKNOWN_PROJECT') {
-          warn('<b>This is not your password.</b> The relay does not yet have the service order ' +
-               'projects set up, so there is nothing to sign in to. Nothing you can do will fix ' +
-               'this from here \u2014 tell Jonna the relay answered <b>UNKNOWN_PROJECT</b>' +
-               (e.project ? ' for <b>' + esc(e.project) + '</b>' : '') + '.');
-          return;
-        }
-        if (e && (e.status === 423 || e.code === 'LOCKED')) {
-          warn('<b>Your account is locked</b> after too many incorrect passwords. Set a new password ' +
-               'to unlock it, then sign in with the new one.<br>' +
-               '<button type="button" class="signlink" data-si-reset>Reset Your Password</button>');
-          passEl.value = '';
-          return;
-        }
-        if (e && e.closed) {
-          var left = e.body && typeof e.body.remaining === 'number' ? e.body.remaining : null;
-          warn('<b>That email and password do not match.</b> Use your MISMO Resources email and ' +
-               'password \u2014 the same ones you use for the other MISMO tools.' +
-               (left != null ? ' <b>' + left + (left === 1 ? ' try' : ' tries') + ' left</b> before the ' +
-                 'account locks. <button type="button" class="signlink" data-si-reset>Forgot it? Reset it here.</button>'
-                 : ' <button type="button" class="signlink" data-si-reset>Forgot it? Reset it here.</button>'));
-          passEl.value = ''; passEl.focus();
-          return;
-        }
-        warn('<b>The sign-in service did not answer.</b> This is not your password. ' +
-             'Try again in a moment, and tell Jonna if it keeps happening.' +
-             (e && e.message ? '<br><span class="signerr">' + esc(e.message) + '</span>' : ''));
-      });
-    }
-    goEl.addEventListener('click', go);
-    [emailEl, passEl].forEach(function (el) {
-      el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') go(); });
-    });
+    RS.requireSignIn(SIGNIN).then(function () { start(); });
   }
+  /* ⚠ BACK HERE AFTER A RESET. Forgot your password? on the shared screen emails
+     a link to the shared reset page, which normally lands people on the
+     Resources home page. This note (in this browser only, for two hours) tells
+     it to bring them back to Contractor HQ instead. It only ever names this
+     page's own address; the reset page checks it before using it. */
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest && ev.target.closest('[data-rs-fgo]');
+    if (!b) return;
+    var f = document.getElementById('rs-femail');
+    var em = String((f && f.value) || '').trim().toLowerCase();
+    if (!em || em.indexOf('@') < 0) return;
+    try {
+      localStorage.setItem('resources:reset-return', JSON.stringify({ path: location.pathname, email: em, at: Date.now() }));
+    } catch (e) {}
+  }, true);
 
   /* Signed in, recognised, but this account carries no service-orders key.  The
      commonest cause by far is an account that already existed for another tool
@@ -15877,8 +15548,17 @@ function loadCompanyCore(slug) {
     R.boot();
     if (!R.signedIn()) { signInView(); return; }
     document.body.classList.remove('signedout');
+    var RS = shared();
+    /* The shared gate: shows the page (it is hidden until then) and locks it
+       again the moment this browser signs out, here or in another tab. */
+    if (RS) RS.requireSignIn(SIGNIN);
     busy('Reading your documents…');
     R.whoami().then(function (me) {
+      /* The access list in the browser is the one from sign-in. Someone given a
+         company since then is asked about before being told they have none. */
+      if (me.keys.length || !RS || !RS.refreshAccess) return me;
+      return RS.refreshAccess((window.RELAY || {}).projects || []).then(function () { return R.whoami(); }, function () { return me; });
+    }).then(function (me) {
       ME = me;
       if (me.kind === 'contractor') return contractorView();
       if (me.kind === 'president') return presidentView();

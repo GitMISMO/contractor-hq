@@ -355,8 +355,9 @@
     });
   }
 
+  /* The shared MISMO sign-in (22 Nov 2026): the same session as the portal and every other tool. */
   function session() {
-    try { var s = JSON.parse(sget('session') || lget('app-session') || 'null'); return s && s.token ? s : null; } catch (e) { return null; }
+    try { var s = root.ResourcesSession && root.ResourcesSession.current(); return s && s.token ? s : null; } catch (e) { return null; }
   }
   function askKeys(s) {
     var all = (root.RELAY && root.RELAY.projects) || [];
@@ -667,7 +668,7 @@
       out.type = 'button';
       out.onclick = function () {
         var r = document.querySelector('#rail-nav .railout');
-        if (r) r.click(); else { sdrop('session'); try { localStorage.removeItem(NS + 'app-session'); } catch (e) {} location.reload(); }
+        if (r) r.click(); else { if (root.ResourcesSession) root.ResourcesSession.signOut(); location.reload(); }
       };
       top.appendChild(out);
     }

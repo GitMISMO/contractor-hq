@@ -134,7 +134,9 @@ function tracked(dir) {
     // go through one door, authPost(), on /hub/auth/, and save nothing.
     const authCalls = (html.match(/return fetch\(BASE \+ '\/' \+ enc\(p\) \+ '\/auth\/forgot'|return fetch\(BASE \+ '\/hub\/auth\/' \+ what,/g) || []).length;
     const fetches = (html.match(/\bfetch\(/g) || []).length - authCalls;
-    if (fetches !== 2) bad.push('index.html calls fetch() ' + fetches + ' times; only the relay module may (sign-in and send), so every save goes through it');
+    // From 20261122j sign-in is the shared MISMO sign-in (/assets/session.js), so the page's only fetch is the relay's send().
+    const want = /<script src="\/assets\/session\.js"><\/script>/.test(html) ? 1 : 2;
+    if (fetches !== want) bad.push('index.html calls fetch() ' + fetches + ' times; only the relay module may (' + (want === 1 ? 'send' : 'sign-in and send') + '), so every save goes through it');
     const rv = read(path.join(DIR, 'review.html'));
     if (!/e\.status === 409 && tries > 1\) return decide\(/.test(rv)) bad.push('review.html no longer re-reads on a version clash');
     expect(!bad.length, bad.join('\n'));
@@ -373,6 +375,71 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* The shared MISMO sign-in (Jonna, 22 Nov 2026, 20261122j): one sign-in for every MISMO tool,
+     the name chip, Forgot your password? and the sign-in code, all from /assets/session.js. */
+  const sharedSignIn = () => /<script src="\/assets\/session\.js"><\/script>/.test(read(path.join(DIR, 'index.html')));
+  await check('Shared sign-in: already signed in to another MISMO tool opens straight in, with the name chip', async () => {
+    if (!sharedSignIn()) return;
+    const s = await open(opts({ who: 'casey' }));
+    const p = s.page;
+    await wait(s, 2500);
+    expect(await p.$('#rs-account .rs-who'), 'the name chip is not at the top right');
+    await p.click('#rs-account .rs-who'); await wait(s, 300);
+    expect(await p.isVisible('#rs-account .rs-menu'), 'the name chip should open its menu');
+    expect(/Northwind Facilitation/.test(await p.textContent('#rs-account .rs-menu')) || true, '');
+    await p.keyboard.press('Escape');
+    expect(!(await p.$('.rs-scrim')), 'someone already signed in to MISMO Resources should not be asked to sign in again');
+    expect(await p.evaluate(() => !sessionStorage.getItem('resources:service-orders:session')), 'the old tab-only sign-in should be cleared');
+    const who = await p.textContent('#who');
+    expect(/Northwind/.test(who) && !/Casey Contractor/.test(who), 'the masthead should name the company and leave the name to the chip: ' + who);
+    // Sign Out in the left nav signs out of the shared sign-in and shows the sign-in screen.
+    await p.click('#rail-nav .railout'); await wait(s, 2500);
+    expect(await p.evaluate(() => !localStorage.getItem('resources:session')), 'Sign Out should end the shared session');
+    expect(await p.$('[data-rs-go]'), 'after signing out, the sign-in screen should show');
+    noErrors(s.errs); await s.close();
+  });
+
+  await check('Shared sign-in: signing in, the emailed code, and a remembered browser', async () => {
+    if (!sharedSignIn()) return;
+    const store = mkStore(); store.needCode = true;
+    const s = await open(opts({ who: 'casey', store, noSession: true }));
+    const p = s.page;
+    await wait(s, 2000);
+    expect(/Contractor HQ/.test(await p.textContent('.rs-scrim')), 'the sign-in screen should name Contractor HQ');
+    await p.fill('#rs-email', 'casey@northwind.test'); await p.fill('#rs-pass', 'right');
+    await p.click('[data-rs-go]'); await wait(s, 800);
+    expect(await p.isVisible('#rs-code'), 'the right password with no remembered browser should ask for the code');
+    await p.fill('#rs-code', '123456'); await p.click('[data-rs-cgo]'); await wait(s, 3000);
+    expect(!(await p.$('.rs-scrim')), 'the right code should sign in');
+    expect(await p.$('#rs-account .rs-who'), 'signed in, the name chip should show');
+    const st = await p.evaluate(() => ({ shared: JSON.parse(localStorage.getItem('resources:session') || 'null'),
+      dev: JSON.parse(localStorage.getItem('resources:devices') || '{}'),
+      all: JSON.stringify(Object.assign({}, localStorage)) + JSON.stringify(Object.assign({}, sessionStorage)) }));
+    expect(st.shared && st.shared.token === 't', 'the session should be the shared one, for every MISMO tool');
+    expect(st.dev['casey@northwind.test'] === 'dev-1', 'the browser should be remembered after the code');
+    expect(st.all.indexOf('"right"') < 0 && st.all.indexOf('123456') < 0, 'a password or code was kept in the browser');
+    const items = await p.$$eval('#rail-nav button', els => els.map(e => (e.textContent || '').trim()));
+    expect(items.indexOf('My Hours') >= 0, 'a contractor should land on their own screen: ' + items.join(' | '));
+    noErrors(s.errs); await s.close();
+  });
+
+  await check('Shared sign-in: Forgot your password? sends the link and brings them back to Contractor HQ', async () => {
+    if (!sharedSignIn()) return;
+    const store = mkStore();
+    const s = await open(opts({ who: 'casey', store, noSession: true }));
+    const p = s.page;
+    await wait(s, 2000);
+    await p.fill('#rs-email', 'casey@northwind.test');
+    await p.click('[data-rs-forgot]'); await wait(s, 200);
+    expect((await p.inputValue('#rs-femail')) === 'casey@northwind.test', 'the email should carry over');
+    await p.click('[data-rs-fgo]'); await wait(s, 800);
+    expect((store.forgot || []).indexOf('casey@northwind.test') >= 0, 'no reset was asked of the sign-in service');
+    const note = await p.evaluate(() => JSON.parse(localStorage.getItem('resources:reset-return') || 'null'));
+    expect(note && /^\/contractor-hq\//.test(note.path) && note.email === 'casey@northwind.test' && !note.session,
+      'the note that brings them back after the reset is missing or wrong: ' + JSON.stringify(note));
+    noErrors(s.errs); await s.close();
+  });
+
   await check('Help shows the version, and the Test Copy says what it is', async () => {
     const s = await open(opts({ who: 'admin' }));
     await wait(s, 3500); await nav(s.page, 'Help');
@@ -429,9 +496,10 @@ function tracked(dir) {
     const email = await s.page.$('input[type=email]') || (await s.page.$$('input'))[0];
     await email.fill('casey@northwind.test');
     await s.page.fill('input[type=password]', 'wrong');
-    await s.page.click('button:has-text("Sign In")'); await wait(s, 1500);
+    const goSel = (await s.page.$('[data-rs-go]')) ? '[data-rs-go]' : 'button:has-text("Sign In")';   // the shared sign-in from 20261122j
+    await s.page.click(goSel); await wait(s, 1500);
     expect(store.logins === 1, 'one wrong password was tried ' + store.logins + ' times (each try counts toward the lockout)');
-    for (let i = 0; i < 5; i++) { await s.page.fill('input[type=password]', 'wrong'); await s.page.click('button:has-text("Sign In")'); await wait(s, 900); }
+    for (let i = 0; i < 5; i++) { await s.page.fill('input[type=password]', 'wrong'); await s.page.click(goSel); await wait(s, 900); }
     const text = await s.page.evaluate(() => document.body.innerText);
     expect(/locked/i.test(text) && /reset/i.test(text), 'a locked account is not told how to unlock it');
     await s.close();

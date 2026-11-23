@@ -61,7 +61,9 @@ async function open(opts) {
     if (url.origin === RELAY) { reqs.push(decodeURIComponent(url.pathname)); return relay(route, req, url, u, store); }
     if (url.origin === ORIGIN) {
       let p = url.pathname; if (p.endsWith('/')) p += 'index.html';
-      if (p === '/assets/session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'session-stub.js')) });
+      // The shared MISMO sign-in: a copy of the live /assets/session.js (tests/shared-session.js), so the
+      // checks sign in, send codes and reset passwords through the same screen people see.
+      if (p === '/assets/session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'shared-session.js')) });
       if (!p.startsWith('/contractor-hq/')) return route.fulfill({ status: 404, body: 'not part of the checks' });
       const file = path.join(ROOT, p.slice('/contractor-hq/'.length));
       if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: 'not found' });
@@ -79,7 +81,9 @@ async function open(opts) {
   const sess = { token: 't', name: u.name, email: u.email, access: u.access, expiresAt: new Date(t0 + 8 * 3600e3).toISOString() };
   if (!opts.noSession) {
     await ctx.addInitScript(([s]) => {
-      try { sessionStorage.setItem('resources:service-orders:session', s); localStorage.setItem('resources:session', s); } catch (e) {}
+      // Seeded once per tab, like a real sign-in: a reload after signing out must stay signed out.
+      try { if (sessionStorage.getItem('__seeded')) return; sessionStorage.setItem('__seeded', '1');
+        sessionStorage.setItem('resources:service-orders:session', s); localStorage.setItem('resources:session', s); } catch (e) {}
     }, [JSON.stringify(sess)]);
   }
   const base = ORIGIN + '/contractor-hq/' + (opts.version ? 'releases/' + opts.version + '/' : '');
@@ -125,6 +129,10 @@ function relay(route, req, url, u, store) {
     if (body.current !== 'right') return json(400, { error: 'BAD_PASSWORD', problems: ['Your current password is not right.'] });
     store.pwChanged = body.password;
     return json(200, { token: 't2', device: 'dev-pw', email: u.email, expiresAt: new Date(Date.now() + 8 * 3600e3).toISOString() });
+  }
+  if (kind === 'auth' && rest === 'me') {
+    if ((req.headers()['authorization'] || '') !== 'Bearer t') return json(401, { error: 'TOKEN_STALE' });
+    return json(200, { name: u.name, email: u.email, access: u.access });
   }
   if (kind === 'auth' && rest === 'forgot') {
     // The real relay answers the same whether or not the account exists.

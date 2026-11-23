@@ -8,7 +8,9 @@ checks another; `node tests/run.js "sign-in"` runs only the checks whose name co
   or changed, and nothing outside is reached.
 - `fixtures.js` is the made-up sample data: two invented companies, invented people, `.test`
   email addresses. This repository is public, so never put real names, figures or contacts here.
-- `session-stub.js` stands in for the shared sign-in (`/assets/session.js`) for `review.html`.
+- `shared-session.js` is a copy of the live shared sign-in (`/assets/session.js`, GitMISMO.github.io), so the checks sign in,
+  send codes and reset passwords through the same screen people see (Contractor HQ uses it from 20261122j). Refresh the
+  copy when Perry changes the live one. `session-stub.js` is the older stand-in, no longer used.
 - `run.js` holds the checks. When you add a feature, add a check for it here.
 
 The checks run on GitHub on every upload (`.github/workflows/checks.yml`) and again before every

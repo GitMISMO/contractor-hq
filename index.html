@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261125c">
+<meta name="so-version" content="20261125d">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -15,6 +15,41 @@
 <!-- The shared MISMO sign-in (Perry's), as every other tool uses it (Jonna, 22 Nov 2026):
      one sign-in for every MISMO tool, and the name chip at the top right. -->
 <script src="/assets/session.js"></script>
+<!-- The browser's Back button (CN-033, Jonna, Nov 25, 2026): the shared helper, never a copy of it here.
+     Back goes to the last page of the left menu and first closes an open panel or pop-up. -->
+<script src="/assets/back.js"></script>
+<script>
+/* Contractor HQ's layers for Back, bottom first. Each close is exactly what its own X does,
+   so the right-hand panel still asks about unsaved hours before it closes. */
+(function () {
+  if (!window.MismoBack) return;
+  /* ⚠ The menu buttons' data-hq is the section's id, and the ids are numbered afresh every
+     time a view redraws (after any save). So Back remembers a page by its NAME, the way
+     showPage() does, and shows it again by pressing that page's own menu button. */
+  function named(b) {
+    var sec = document.getElementById(b.getAttribute('data-hq') || '');
+    return (sec && sec.getAttribute('data-name')) || b.title || '';
+  }
+  MismoBack.pages({
+    current: function () {
+      var b = document.querySelector('#rail-nav button[data-hq][aria-current]');
+      return b ? named(b) : '';
+    },
+    go: function (name) {
+      var bs = document.querySelectorAll('#rail-nav button[data-hq]');
+      for (var i = 0; i < bs.length; i++) if (named(bs[i]) === name) { bs[i].click(); return; }
+    }
+  });
+  MismoBack.layer({
+    isOpen: function () { var p = document.getElementById('panel'); return !!(p && p.classList.contains('on')); },
+    close: function () { var x = document.getElementById('panel-x'); if (x) x.click(); }
+  });
+  MismoBack.layer({
+    isOpen: function () { return !!document.getElementById('xp-policy'); },
+    close: function () { var x = document.getElementById('xp-policy-x'); if (x) x.click(); }
+  });
+})();
+</script>
 <link rel="apple-touch-icon" href="xp-icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15291,7 +15326,11 @@ function loadCompanyCore(slug) {
   }
 
   /* Every Help page ends with the version, so anyone can say which one they are on. */
-  function helpFor(kind, F, opts) { return helpForInner(kind, F, opts) + versionLine(); }
+  function helpFor(kind, F, opts) { return helpForInner(kind, F, opts) + backLine() + versionLine(); }
+  /* CN-033 (Nov 25, 2026): the browser's Back button, one line for everyone. */
+  function backLine() {
+    return blk('The Back Button', '<p>The browser\u2019s <b>Back</b> button goes to the last page you were on, and closes an open panel first. It never undoes a change.</p>');
+  }
   function versionLine() {
     var v = (document.querySelector('meta[name="so-version"]') || {}).content || 'not versioned';
     return '<p class="fineprint so-ver">Version ' + esc(v) + (TEST_COPY ? ' \u00b7 Test Copy' : '') + '</p>';

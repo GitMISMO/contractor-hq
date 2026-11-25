@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-25
 
+- The browser's Back button now works: it goes to the last page you were on in the left menu and closes an open panel or the expense policy first. It never undoes a change, and the address bar doesn't change (CN-033) [20261125d]
 - Expense policy: airfare over $800 needs approval from the Director of Programs & Operations (the i card, the fine print and Help) [20261125c]
 - My Expenses: a small round i beside the heading (computer and phone app) opens the expense policy: meal caps, the $140 daily total, the $15 no-receipt limit, and airfare over $800 needing approval. The fine print and Help carry the airfare line too [20261125b]
 - Browser tab icon now matches mismo.org: Contractor HQ and the Service Order Review page show the MISMO S mark on a navy square, from the one shared copy. The Expenses app's home-screen icon is unchanged [20261125a]

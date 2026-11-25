@@ -64,6 +64,8 @@ async function open(opts) {
       // The shared MISMO sign-in: a copy of the live /assets/session.js (tests/shared-session.js), so the
       // checks sign in, send codes and reset passwords through the same screen people see.
       if (p === '/assets/session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'shared-session.js')) });
+      // The shared Back-button helper is tested as it is live (CN-033); MISMO_BACK can point at a local copy.
+      if (p === '/assets/back.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: await backJs() });
       if (!p.startsWith('/contractor-hq/')) return route.fulfill({ status: 404, body: 'not part of the checks' });
       const file = path.join(ROOT, p.slice('/contractor-hq/'.length));
       if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: 'not found' });
@@ -179,6 +181,17 @@ function relay(route, req, url, u, store) {
   }
   if (kind === 'ask') return json(404, { error: 'NOT_FOUND' });
   return json(404, { error: 'NOT_FOUND' });
+}
+
+/* The shared Back-button helper (resources.mismo.org/assets/back.js), fetched once from the live copy. */
+let BACK = null;
+async function backJs() {
+  if (BACK !== null) return BACK;
+  try {
+    if (process.env.MISMO_BACK) BACK = fs.readFileSync(process.env.MISMO_BACK, 'utf8');
+    else { const r = await fetch('https://resources.mismo.org/assets/back.js'); BACK = r.ok ? await r.text() : ''; }
+  } catch (e) { BACK = ''; }
+  return BACK;
 }
 
 module.exports = { open, mkStore, USERS, FX, ROOT };

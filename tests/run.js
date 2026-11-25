@@ -908,6 +908,52 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* CN-033 (Jonna, Nov 25, 2026): the browser's Back button closes what is open, then goes to the last page. */
+  await check('Back button: closes the panel, then returns to the last page', async () => {
+    const html = read(path.join(DIR, 'index.html'));
+    if (html.indexOf('/assets/back.js') < 0) return;   // versions before 20261125d
+    expect(/<script src="\/assets\/session\.js"><\/script>\s*(<!--[\s\S]*?-->\s*)?<script src="\/assets\/back\.js"><\/script>/.test(html),
+      'back.js should be loaded right after session.js');
+    expect(!/history\.pushState/.test(html), 'the page should not add its own history steps (back.js does that)');
+    expect(!fs.readdirSync(DIR).some(n => /^back\.js$/i.test(n)), 'a copy of back.js is in the version folder: use the shared one');
+    const s = await open(opts({ who: 'admin' }));
+    await wait(s, 4500);
+    const state = () => s.page.evaluate(() => {
+      const b = document.querySelector('#rail-nav button[data-hq][aria-current]');
+      const sec = b && document.getElementById(b.getAttribute('data-hq'));
+      return { tab: (sec && sec.getAttribute('data-name')) || '', pane: document.getElementById('panel').classList.contains('on'),
+        policy: !!document.getElementById('xp-policy'), helper: !!window.MismoBack };
+    });
+    expect((await state()).helper, 'the shared Back helper (/assets/back.js) did not load');
+    const go = async name => { await s.page.click('#rail-nav button[title="' + name + '"]'); await wait(s, 900); };
+    const back = async () => { await s.page.evaluate(() => history.back()); await wait(s, 900); };
+    const start = (await state()).tab;
+    expect(start, 'no page is marked aria-current in the left menu');
+    await go('Service Orders'); await go('Agreements'); await go('Help');
+    let st = await state(); expect(st.tab === 'Help', 'Help did not open: ' + JSON.stringify(st));
+    await back(); st = await state(); expect(st.tab === 'Agreements', 'Back from Help should land on Agreements: ' + JSON.stringify(st));
+    await back(); st = await state(); expect(st.tab === 'Service Orders', 'Back again should land on Service Orders: ' + JSON.stringify(st));
+    await s.page.evaluate(() => history.forward()); await wait(s, 900);
+    st = await state(); expect(st.tab === 'Agreements', 'Forward should go back to Agreements: ' + JSON.stringify(st));
+    await back(); await back(); st = await state(); expect(st.tab === start, 'Back to where the page opened (' + start + '): ' + JSON.stringify(st));
+    /* a record's panel: Back closes it first and stays on the page */
+    const sec = '.psec[data-name="Service Orders"]';
+    await go('Service Orders');
+    await s.page.click(sec + ' .sorow:not([hidden]) .hqrow'); await wait(s, 700);
+    expect((await state()).pane, 'an order did not open in the right-hand panel');
+    await back(); st = await state();
+    expect(!st.pane && st.tab === 'Service Orders', 'Back should close the panel and stay on Service Orders: ' + JSON.stringify(st));
+    await back(); st = await state(); expect(st.tab === start, 'Back after the panel should go to the page before Service Orders: ' + JSON.stringify(st));
+    /* closing the panel with its X leaves no step behind */
+    await go('Service Orders');
+    await s.page.click(sec + ' .sorow:not([hidden]) .hqrow'); await wait(s, 700);
+    await s.page.click('#panel-x'); await wait(s, 700);
+    expect(!(await state()).pane, 'the X did not close the panel');
+    await back(); st = await state(); expect(st.tab === start, 'after closing the panel with X, Back should go straight to the page before: ' + JSON.stringify(st));
+    expect(/The Back Button/.test(await s.page.evaluate(() => document.body.innerHTML)), 'Help does not mention the Back button');
+    noErrors(s.errs); await s.close();
+  });
+
   await check('The Expenses phone app opens on a phone', async () => {
     const s = await open(opts({ who: 'casey', path: '?app=expenses', viewport: { width: 390, height: 844 } }));
     await wait(s, 3000);

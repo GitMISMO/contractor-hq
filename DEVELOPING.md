@@ -174,6 +174,25 @@ Never copy the image into this repository or add another tab icon; `review.html`
 home-screen icons (`expenses.webmanifest`, `apple-touch-icon`, `xp-icon-*.png`) are separate and stay.
 The checks test this.
 
+## The Back Button
+
+The browser's Back and Forward buttons (Change Notice CN-033, Nov 25, 2026) come from the one shared
+helper `/assets/back.js` (owned by Forms and shared pages), loaded in `index.html`'s `<head>` right
+after `/assets/session.js`. **Never copy it here, and never add a `history.pushState` or change the
+address for this.** The small script after it tells the helper two things:
+
+- **Pages, by name.** The left menu buttons carry `data-hq="<section id>"`, but the ids are numbered
+  afresh every time a view redraws, so the script uses `MismoBack.pages()` with the page's
+  `data-name` (as `showPage()` remembers it) and shows a page by pressing its own menu button.
+  The page showing is the menu button with `aria-current` (set by `showPage()`).
+- **Layers, bottom first**: the right-hand panel (`#panel.on`, closed by pressing `#panel-x`, so
+  unsaved hours still ask first) and the expense policy card (`#xp-policy`). A new pop-up or
+  drawer that Back should close is added there, in the order it stacks.
+
+`review.html` and the Expenses phone app have no left menu, so they have no Back steps of their
+own. The checks serve `/assets/back.js` from the live copy (`MISMO_BACK=<file>` tries a local one)
+and test it (Back button check).
+
 ## The Page Safety List
 
 Each page has a `Content-Security-Policy` naming the only places it may load code from or send data

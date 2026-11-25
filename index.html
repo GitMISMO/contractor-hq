@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261125b">
+<meta name="so-version" content="20261125c">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -4443,8 +4443,10 @@ window.H = (function () {
   var DAILY_MEAL_CAP = 140;
   var RECEIPT_OVER = 15;
   var MEAL_RECEIPT_OVER = RECEIPT_OVER;
-  /* Jonna, 25 Nov 2026: airfare over $800 needs approval. */
+  /* Jonna, 25 Nov 2026: airfare over $800 needs approval from the Director of
+     Programs & Operations. */
   var AIRFARE_APPROVAL_OVER = 800;
+  var AIRFARE_APPROVER = 'the Director of Programs & Operations';
 
   /* The policy card the "i" beside My Expenses opens. The numbers come from
      the same constants the checks use, so the card can never say one thing
@@ -4467,7 +4469,7 @@ window.H = (function () {
       '<h3>Receipts</h3><p>A receipt is needed for anything over ' + money(RECEIPT_OVER) +
         '. Without one, no more than ' + money(RECEIPT_OVER) + ' can be claimed. Mileage is the exception: ' +
         'it is worked out from the miles.</p>' +
-      '<h3>Airfare</h3><p>Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval.</p>' +
+      '<h3>Airfare</h3><p>Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval from ' + esc(AIRFARE_APPROVER) + '.</p>' +
       '<div class="modal-acts"><button type="button" class="gobtn" id="xp-policy-x">Close</button></div></div>';
     document.body.appendChild(m);
     function close() { if (m.parentNode) m.parentNode.removeChild(m); }
@@ -8090,7 +8092,7 @@ function loadCompanyCore(slug) {
       money(RECEIPT_OVER) + ' can be claimed. Meals: up to ' + money(MEAL_CAP['Meal Trvl - Breakfast']) +
       ' breakfast, ' + money(MEAL_CAP['Meal Trvl - Lunch']) + ' lunch, ' + money(MEAL_CAP['Meal Trvl - Dinner']) +
       ' dinner and ' + money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks, and ' + money(DAILY_MEAL_CAP) +
-      ' a day in all. Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval.</p>';
+      ' a day in all. Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval from ' + esc(AIRFARE_APPROVER) + '.</p>';
   }
 
   function expensePanel(e, all, fresh) {
@@ -15239,7 +15241,7 @@ function loadCompanyCore(slug) {
       'A receipt is required for <b>anything over $15</b>, meals and everything else. Without one, no more than <b>$15</b> can be claimed. (Mileage is the exception: it is worked out from the miles.)',
       'Meal guidelines: <b>$25</b> breakfast, <b>$40</b> lunch, <b>$60</b> dinner, <b>$15</b> snacks.',
       'All meals together can come to no more than <b>$140</b> per person per day.',
-      'Airfare over <b>$800</b> needs approval.',
+      'Airfare over <b>$800</b> needs approval from the <b>Director of Programs &amp; Operations</b>.',
       'The round <b>i</b> beside <b>My Expenses</b> shows all of this whenever you need it.',
       'These are <b>MBA’s travel and expense policy</b>, not the portal’s — they are the same rules MISMO staff follow.',
       'The portal tells you when something is over a cap <b>before</b> you submit, not after.']))

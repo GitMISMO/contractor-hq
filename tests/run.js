@@ -142,6 +142,22 @@ function tracked(dir) {
     expect(!bad.length, bad.join('\n'));
   });
 
+  await check('Every page has the shared MISMO tab icon and no other', async () => {
+    // CN-030 (Nov 25, 2026): the same tab icon as www.mismo.org, from the one shared copy.
+    const ICON = '<link rel="icon" type="image/png" sizes="48x48" href="https://resources.mismo.org/assets/favicon-48x48.png">';
+    const bad = [];
+    for (const f of Object.keys(SAFETY_LIST)) {
+      const html = read(path.join(DIR, f));
+      const head = html.slice(0, html.indexOf('</head>'));
+      if (head.split(ICON).length - 1 !== 1) bad.push(f + ': the shared tab icon line should be in <head> exactly once');
+      const icons = (html.match(/<link[^>]*rel=["']?(shortcut )?icon["'\s>][^>]*>/gi) || []).filter(l => l !== ICON);
+      if (icons.length) bad.push(f + ': has another tab icon: ' + icons.join(' '));
+      if (/rel\s*=\s*['"](shortcut )?icon['"]|\.rel\s*=\s*['"](shortcut )?icon/.test(html.replace(ICON, ''))) bad.push(f + ': sets a tab icon some other way');
+    }
+    if (fs.readdirSync(DIR).some(n => /favicon/i.test(n))) bad.push('a favicon copy is in the version folder: point at the shared one instead');
+    expect(!bad.length, bad.join('\n'));
+  });
+
   await check('Every page has its safety list', async () => {
     const bad = [];
     for (const f of Object.keys(SAFETY_LIST)) {

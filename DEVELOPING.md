@@ -163,6 +163,17 @@ Every change is a saved version:
   payable email with its PDF and Jonna copied; the Expenses phone app opens.
 - **This repository is public: no real company names, people, amounts, rates or contacts in tests.**
 
+## The Browser Tab Icon
+
+Every page (`index.html`, `review.html`, and so every Test Copy) shows the same tab icon as
+www.mismo.org, from the one shared copy (Change Notice CN-030, Nov 25, 2026). Each `<head>` has this
+one icon line and no other:
+`<link rel="icon" type="image/png" sizes="48x48" href="https://resources.mismo.org/assets/favicon-48x48.png">`.
+Never copy the image into this repository or add another tab icon; `review.html` gets the line from
+`tools/make_review.py`. The page's own `img-src 'self'` already allows it. The Expenses app's
+home-screen icons (`expenses.webmanifest`, `apple-touch-icon`, `xp-icon-*.png`) are separate and stay.
+The checks test this.
+
 ## The Page Safety List
 
 Each page has a `Content-Security-Policy` naming the only places it may load code from or send data

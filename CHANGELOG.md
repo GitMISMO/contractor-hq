@@ -4,6 +4,10 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-25
+
+- Browser tab icon now matches mismo.org: Contractor HQ and the Service Order Review page show the MISMO S mark on a navy square, from the one shared copy. The Expenses app's home-screen icon is unchanged [20261125a]
+
 ## 2026-11-23
 
 - Opening: a read GitHub turns away (502 GITHUB from the relay) is asked again twice, a moment apart, instead of showing Something Went Wrong until a refresh. Saves are never repeated [20261123b]

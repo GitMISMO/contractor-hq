@@ -502,7 +502,8 @@ function tracked(dir) {
       expect(btn && await btn.isVisible(), 'no "i" beside My Expenses' + (where ? ' in the phone app' : ''));
       await btn.click(); await wait(s, 200);
       const txt = await p.textContent('#xp-policy');
-      for (const want of ['$25', '$40', '$60', '$15', '$140', '$800', 'receipt', 'Airfare'])
+      const who = read(path.join(DIR, 'index.html')).indexOf('AIRFARE_APPROVER') >= 0 ? ['Director of Programs & Operations'] : [];
+      for (const want of ['$25', '$40', '$60', '$15', '$140', '$800', 'receipt', 'Airfare'].concat(who))
         expect(txt.indexOf(want) >= 0, 'the policy card is missing ' + want + ': ' + txt);
       await p.keyboard.press('Escape'); await wait(s, 100);
       expect(!(await p.$('#xp-policy')), 'Escape should close the policy card');

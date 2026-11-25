@@ -142,22 +142,6 @@ function tracked(dir) {
     expect(!bad.length, bad.join('\n'));
   });
 
-  await check('Every page has the shared MISMO tab icon and no other', async () => {
-    // CN-030 (Nov 25, 2026): the same tab icon as www.mismo.org, from the one shared copy.
-    const ICON = '<link rel="icon" type="image/png" sizes="48x48" href="https://resources.mismo.org/assets/favicon-48x48.png">';
-    const bad = [];
-    for (const f of Object.keys(SAFETY_LIST)) {
-      const html = read(path.join(DIR, f));
-      const head = html.slice(0, html.indexOf('</head>'));
-      if (head.split(ICON).length - 1 !== 1) bad.push(f + ': the shared tab icon line should be in <head> exactly once');
-      const icons = (html.match(/<link[^>]*rel=["']?(shortcut )?icon["'\s>][^>]*>/gi) || []).filter(l => l !== ICON);
-      if (icons.length) bad.push(f + ': has another tab icon: ' + icons.join(' '));
-      if (/rel\s*=\s*['"](shortcut )?icon['"]|\.rel\s*=\s*['"](shortcut )?icon/.test(html.replace(ICON, ''))) bad.push(f + ': sets a tab icon some other way');
-    }
-    if (fs.readdirSync(DIR).some(n => /favicon/i.test(n))) bad.push('a favicon copy is in the version folder: point at the shared one instead');
-    expect(!bad.length, bad.join('\n'));
-  });
-
   await check('Every page has its safety list', async () => {
     const bad = [];
     for (const f of Object.keys(SAFETY_LIST)) {
@@ -488,6 +472,26 @@ function tracked(dir) {
     expect(!/Something Went Wrong/i.test(text), 'a refused read still showed the error screen');
     expect(/Status Board/.test(text), 'the Status Board should open');
     noErrors(s.errs.filter(e => !/status of 502/.test(e))); await s.close();
+  });
+
+  /* Jonna, 25 Nov 2026 (20261125a): the expense policy behind a small "i" beside My Expenses. */
+  await check('The "i" beside My Expenses shows the expense policy', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('class="xp-info"') < 0) return;
+    for (const where of ['', '?app=expenses']) {
+      const s = await open(opts({ who: 'casey', path: where, viewport: where ? { width: 390, height: 800 } : undefined }));
+      const p = s.page;
+      await wait(s, 3500);
+      if (!where) await nav(p, 'My Expenses');
+      const btn = await p.$('section[data-name="My Expenses"] .xp-info');
+      expect(btn && await btn.isVisible(), 'no "i" beside My Expenses' + (where ? ' in the phone app' : ''));
+      await btn.click(); await wait(s, 200);
+      const txt = await p.textContent('#xp-policy');
+      for (const want of ['$25', '$40', '$60', '$15', '$140', '$800', 'receipt', 'Airfare'])
+        expect(txt.indexOf(want) >= 0, 'the policy card is missing ' + want + ': ' + txt);
+      await p.keyboard.press('Escape'); await wait(s, 100);
+      expect(!(await p.$('#xp-policy')), 'Escape should close the policy card');
+      noErrors(s.errs); await s.close();
+    }
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {

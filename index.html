@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261125a">
+<meta name="so-version" content="20261125b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1784,6 +1784,22 @@ td .notefmt.fineprint{margin-top:6px}
 .modal-box h2{font-size:17px;font-weight:700;margin:0}
 .modal-box p{margin:6px 0 16px;color:var(--ink-2)}
 .modal-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+/* The expense policy "i" and its card (25 Nov 2026). */
+.xp-info{align-self:center;width:22px;height:22px;flex:0 0 22px;border-radius:50%;border:1.5px solid var(--navy-mid,#2c6a96);
+  background:transparent;color:var(--navy-mid,#2c6a96);font:700 12px/1 Georgia,'Times New Roman',serif;font-style:italic;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.xp-info:hover{background:var(--navy-mid,#2c6a96);color:#fff}
+.xp-info:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+:root[data-theme="dark"] .xp-info{border-color:var(--sky);color:var(--sky)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .xp-info{border-color:var(--sky);color:var(--sky)}}
+.xp-policy-box h3{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 6px}
+.xp-policy-box p{margin:0 0 6px}
+.xp-policy-box .modal-acts{margin-top:16px}
+.xp-pt{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.xp-pt th,.xp-pt td{padding:6px 0;border-bottom:1px solid var(--border);text-align:left;font-weight:500;background:none!important;
+  text-transform:none!important;letter-spacing:normal!important;font-family:inherit!important;font-size:14px!important;color:var(--ink)!important}
+.xp-pt td{text-align:right;font-weight:600}
+.xp-pt tr:last-child th,.xp-pt tr:last-child td{border-bottom:0;font-weight:700}
 .gobtn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
 .gobtn.danger:hover:not(:disabled){background:var(--bad-soft,var(--surface-3));color:var(--bad)}
 
@@ -3442,12 +3458,17 @@ window.H = (function () {
      The heading is a plain <h2>: not a button, not focusable, no chevron.
      There is nothing to press, because pressing it did the thing the rail now
      does. */
+  /* The expense policy, one press away (Jonna, 25 Nov 2026): a small round "i"
+     beside the My Expenses heading, on the computer and in the phone app. */
+  var XP_INFO_BTN = '<button type="button" class="xp-info" aria-haspopup="dialog" ' +
+    'title="The expense policy" aria-label="The expense policy">i</button>';
   function sect(title, count, body, openByDefault) {
     var id = 'sec' + (++SEQ);
     return '<section class="psec" id="' + id + '" data-name="' + esc(title) + '">' +
       '<h2 class="psec-h">' +
       '<span>' + esc(title) + '</span>' +
       (count == null ? '' : '<span class="cnt">' + esc(String(count)) + '</span>') +
+      (title === 'My Expenses' ? XP_INFO_BTN : '') +
       '</h2><div class="psec-b">' + body + '</div></section>';
   }
 
@@ -4422,6 +4443,46 @@ window.H = (function () {
   var DAILY_MEAL_CAP = 140;
   var RECEIPT_OVER = 15;
   var MEAL_RECEIPT_OVER = RECEIPT_OVER;
+  /* Jonna, 25 Nov 2026: airfare over $800 needs approval. */
+  var AIRFARE_APPROVAL_OVER = 800;
+
+  /* The policy card the "i" beside My Expenses opens. The numbers come from
+     the same constants the checks use, so the card can never say one thing
+     while the checks do another. */
+  function openExpensePolicy() {
+    var old = document.getElementById('xp-policy'); if (old) old.parentNode.removeChild(old);
+    var m = document.createElement('div');
+    m.className = 'modal'; m.id = 'xp-policy';
+    m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'xp-policy-t');
+    function row(k, v) { return '<tr><th scope="row">' + k + '</th><td>' + v + '</td></tr>'; }
+    m.innerHTML = '<div class="modal-box xp-policy-box"><h2 id="xp-policy-t">Expense Policy</h2>' +
+      '<p>MISMO reimburses under MBA\u2019s travel and expense policy.</p>' +
+      '<h3>Meals, Per Person</h3><table class="xp-pt">' +
+        row('Breakfast', 'up to ' + money(MEAL_CAP['Meal Trvl - Breakfast'])) +
+        row('Lunch', 'up to ' + money(MEAL_CAP['Meal Trvl - Lunch'])) +
+        row('Dinner', 'up to ' + money(MEAL_CAP['Meal Trvl - Dinner'])) +
+        row('Snacks', 'up to ' + money(MEAL_CAP['Meal Trvl - Snack'])) +
+        row('All Meals in One Day', 'no more than ' + money(DAILY_MEAL_CAP)) +
+      '</table>' +
+      '<h3>Receipts</h3><p>A receipt is needed for anything over ' + money(RECEIPT_OVER) +
+        '. Without one, no more than ' + money(RECEIPT_OVER) + ' can be claimed. Mileage is the exception: ' +
+        'it is worked out from the miles.</p>' +
+      '<h3>Airfare</h3><p>Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval.</p>' +
+      '<div class="modal-acts"><button type="button" class="gobtn" id="xp-policy-x">Close</button></div></div>';
+    document.body.appendChild(m);
+    function close() { if (m.parentNode) m.parentNode.removeChild(m); }
+    m.querySelector('#xp-policy-x').addEventListener('click', close);
+    m.addEventListener('click', function (e) { if (e.target === m) close(); });
+    m.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    setTimeout(function () { m.querySelector('#xp-policy-x').focus(); }, 20);
+  }
+  /* Guarded: the checks also run these rules outside a browser, where there is no page. */
+  if (typeof document !== 'undefined') document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('.xp-info');
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    openExpensePolicy();
+  });
 
   function isMeal(c) { return String(c || '').indexOf('Meal Trvl') === 0; }
   function receiptExempt(e) { return String((e && e.cat) || '') === 'Mileage'; }
@@ -8029,7 +8090,7 @@ function loadCompanyCore(slug) {
       money(RECEIPT_OVER) + ' can be claimed. Meals: up to ' + money(MEAL_CAP['Meal Trvl - Breakfast']) +
       ' breakfast, ' + money(MEAL_CAP['Meal Trvl - Lunch']) + ' lunch, ' + money(MEAL_CAP['Meal Trvl - Dinner']) +
       ' dinner and ' + money(MEAL_CAP['Meal Trvl - Snack']) + ' snacks, and ' + money(DAILY_MEAL_CAP) +
-      ' a day in all.</p>';
+      ' a day in all. Airfare over ' + money(AIRFARE_APPROVAL_OVER) + ' needs approval.</p>';
   }
 
   function expensePanel(e, all, fresh) {
@@ -15178,6 +15239,8 @@ function loadCompanyCore(slug) {
       'A receipt is required for <b>anything over $15</b>, meals and everything else. Without one, no more than <b>$15</b> can be claimed. (Mileage is the exception: it is worked out from the miles.)',
       'Meal guidelines: <b>$25</b> breakfast, <b>$40</b> lunch, <b>$60</b> dinner, <b>$15</b> snacks.',
       'All meals together can come to no more than <b>$140</b> per person per day.',
+      'Airfare over <b>$800</b> needs approval.',
+      'The round <b>i</b> beside <b>My Expenses</b> shows all of this whenever you need it.',
       'These are <b>MBA’s travel and expense policy</b>, not the portal’s — they are the same rules MISMO staff follow.',
       'The portal tells you when something is over a cap <b>before</b> you submit, not after.']))
     + blk('Submitting, and the Expense Invoice', steps([

@@ -4,6 +4,11 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-26
+
+- Expenses: a receipt is needed for anything $15 or more (was over $15), worded as Team HQ's expense app has it, on the policy card, the checks, the Missing a Receipt tile, the printed report and Help. Mileage still needs none [20261126a]
+- My Expenses: the policy statement at the foot of the page is gone; the round i beside the heading shows the policy (computer and phone app) [20261126a]
+
 ## 2026-11-25
 
 - The browser's Back button now works: it goes to the last page you were on in the left menu and closes an open panel or the expense policy first. It never undoes a change, and the address bar doesn't change (CN-033) [20261125d]

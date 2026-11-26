@@ -278,9 +278,31 @@
     'html.soxp .hqtop{padding-top:env(safe-area-inset-top,0px)}',
     'html.soxp .hqtop .eyebrow-m{display:none}',
     'html.soxp .hqname{flex:0 0 auto;white-space:nowrap}',
-    '@media (max-width:560px){html.soxp .hqtop{padding-left:12px!important;padding-right:12px!important;gap:0!important}html.soxp .logoplate{padding:5px 8px!important}html.soxp .logoplate .wordmark{height:15px!important;width:auto!important}html.soxp .hqtop .who{display:none!important}html.soxp .hqtop .mastrule{margin-inline:9px!important;height:26px!important}html.soxp .hqname::after{font-size:15px!important}html.soxp .hqtop-r{gap:6px!important;margin-left:auto!important}html.soxp .soxp-hq{padding:0 8px!important;font-size:12.5px!important}}',
-    '@media (max-width:399px){html.soxp .hqtop .mastrule{display:none!important}html.soxp .hqname{margin-left:10px}}',
-    '@media (max-width:389px){html.soxp .soxp-hq .l{display:none}}',
+    '@media (max-width:560px){html.soxp .logoplate{padding:6px 10px!important}html.soxp .logoplate .wordmark{height:18px!important;width:auto!important}html.soxp .hqtop .who{display:none!important}}',
+    /* ⚠ The top bar on a phone, matched to Team HQ's Expenses app (Jonna, 26 Nov 2026:
+       "the same icon crowding issue I just fixed on the Team HQ expense app"). A smaller
+       logo and tighter spacing, so Expenses, the policy i, Contractor HQ and the initials
+       each get room instead of touching. Same numbers as Team HQ's. */
+    '@media (max-width:480px){' +
+      'html.soxp header.hqtop .logoplate{padding:4px 7px!important}' +
+      'html.soxp header.hqtop .logoplate .wordmark{width:76px!important;height:auto!important}' +
+      'html.soxp header.hqtop .mastrule{display:block!important;height:22px!important;margin:0 8px!important}' +
+      'html.soxp header.hqtop .hqname{margin-left:0!important}' +
+      'html.soxp header.hqtop .hqname::after{font-size:15.5px!important}' +
+      'html.soxp header.hqtop .xp-info{width:21px!important;height:21px!important;flex:0 0 21px!important;margin-left:7px!important;font-size:11px!important}' +
+      'html.soxp header.hqtop .hqtop-r{gap:8px!important;padding-left:8px;margin-left:auto!important}' +
+      'html.soxp header.hqtop .soxp-hq{min-height:30px!important;padding:0 9px!important;font-size:12.5px!important}' +
+      'html.soxp header.hqtop #rs-account{flex:0 0 auto}' +
+      /* Contractor HQ is a longer name than Team HQ, so the initials are a touch smaller
+         and the spacing a touch tighter to make the same room. */
+      'html.soxp header.hqtop #rs-account .rs-who{width:30px!important;height:30px!important;padding:0!important;justify-content:center!important;min-height:0!important}' +
+      'html.soxp header.hqtop #rs-account .rs-av{width:26px!important;height:26px!important;font-size:11px!important}' +
+      'html.soxp header.hqtop .hqtop-r{gap:7px!important;padding-left:11px}' +
+      'html.soxp header.hqtop .mastrule{margin:0 7px!important}' +
+      'html.soxp header.hqtop .soxp-hq{padding:0 8px!important}' +
+    '}',
+    /* the narrowest phones: the button keeps its place as HQ */
+    '@media (max-width:384px){html.soxp header.hqtop .soxp-hq .l{display:none}}',
     'html.soxp .hqname{font-size:0!important;letter-spacing:0!important}',
     'html.soxp .hqname::after{content:"Expenses";font-size:16px;letter-spacing:normal;font-weight:600}',
     'html.soxp main.wrap{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}',

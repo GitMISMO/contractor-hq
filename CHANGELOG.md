@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-26
 
+- Expenses app on a phone: laid out like Team HQ's. Snap a Receipt first, plain white figures two to a row, Expenses with the round i in the header, a Contractor HQ button there instead of the sentence at the foot, the name chip for signing out, and none of the explaining paragraphs [20261126b]
 - Expenses: a receipt is needed for anything $15 or more (was over $15), worded as Team HQ's expense app has it, on the policy card, the checks, the Missing a Receipt tile, the printed report and Help. Mileage still needs none [20261126a]
 - My Expenses: the policy statement at the foot of the page is gone; the round i beside the heading shows the policy (computer and phone app) [20261126a]
 

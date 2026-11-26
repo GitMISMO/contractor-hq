@@ -278,9 +278,11 @@
     'html.soxp .hqtop{padding-top:env(safe-area-inset-top,0px)}',
     'html.soxp .hqtop .eyebrow-m{display:none}',
     'html.soxp .hqname{flex:0 0 auto;white-space:nowrap}',
-    '@media (max-width:560px){html.soxp .logoplate{padding:6px 10px!important}html.soxp .logoplate .wordmark{height:18px!important;width:auto!important}html.soxp .hqtop .who{display:none!important}html.soxp .soxp-out{margin-left:auto}}',
+    '@media (max-width:560px){html.soxp .hqtop{padding-left:12px!important;padding-right:12px!important;gap:0!important}html.soxp .logoplate{padding:5px 8px!important}html.soxp .logoplate .wordmark{height:15px!important;width:auto!important}html.soxp .hqtop .who{display:none!important}html.soxp .hqtop .mastrule{margin-inline:9px!important;height:26px!important}html.soxp .hqname::after{font-size:15px!important}html.soxp .hqtop-r{gap:6px!important;margin-left:auto!important}html.soxp .soxp-hq{padding:0 8px!important;font-size:12.5px!important}}',
+    '@media (max-width:399px){html.soxp .hqtop .mastrule{display:none!important}html.soxp .hqname{margin-left:10px}}',
+    '@media (max-width:389px){html.soxp .soxp-hq .l{display:none}}',
     'html.soxp .hqname{font-size:0!important;letter-spacing:0!important}',
-    'html.soxp .hqname::after{content:"My Expenses";font-size:16px;letter-spacing:normal;font-weight:600}',
+    'html.soxp .hqname::after{content:"Expenses";font-size:16px;letter-spacing:normal;font-weight:600}',
     'html.soxp main.wrap{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important}',
     'html.soxp #view .psec{display:none!important}',
     'html.soxp #view .psec[data-name="My Expenses"]{display:block!important}',
@@ -654,25 +656,34 @@
       emp.dataset.soxp = '1';
       emp.innerHTML = '<b>Nothing yet.</b> Snap your first receipt with the button at the bottom \u2014 it fills itself in.';
     }
-    if (sec && secs.length > 1) {
-      var b = sec.querySelector('.psec-b');
-      if (b && !b.querySelector(':scope > .soxp-foot')) {
-        var f = el('p', 'soxp-foot', 'Looking for your hours or service orders? <button type="button">Open the full portal</button>');
-        f.querySelector('button').onclick = fullPortal;
-        b.appendChild(f);
-      }
+    /* ⚠ Laid out like Team HQ's Expenses (26 Nov 2026). The Snap a Receipt zone
+       comes first; the policy's round i sits in the header beside the name; the
+       way to hours and service orders is a Contractor HQ button in the header
+       (it was a sentence at the foot); signing out is in the name chip. */
+    var sb = sec && sec.querySelector('.psec-b'), zone = sb && sb.querySelector('#xp-snap');
+    var head = sb && sb.querySelector(':scope > .xp-head');
+    if (zone && head && zone.nextElementSibling !== head) {
+      var tipEl = sb.querySelector(':scope > .soxp-tip');
+      sb.insertBefore(zone, tipEl ? tipEl.nextSibling : sb.firstChild);
+    }
+    var nm = document.querySelector('.hqtop .hqname');
+    if (nm && !signedOut && !document.querySelector('.hqtop .xp-info')) {
+      var ib = el('button', 'xp-info', 'i');
+      ib.type = 'button'; ib.title = 'The expense policy';
+      ib.setAttribute('aria-label', 'The expense policy'); ib.setAttribute('aria-haspopup', 'dialog');
+      nm.insertAdjacentElement('afterend', ib);
     }
     var top = document.querySelector('.hqtop-r');
-    if (top && !top.querySelector('.soxp-out') && !signedOut) {
-      var out = el('button', 'soxp-out', 'Sign Out');
-      out.type = 'button';
-      out.onclick = function () {
-        var r = document.querySelector('#rail-nav .railout');
-        if (r) r.click(); else { if (root.ResourcesSession) root.ResourcesSession.signOut(); location.reload(); }
-      };
-      top.appendChild(out);
+    if (top && sec && secs.length > 1 && !signedOut && !top.querySelector('.soxp-hq')) {
+      var hq = el('button', 'soxp-hq', '<span class="l">Contractor</span><span>HQ</span>');
+      hq.type = 'button'; hq.title = 'Your hours, service orders and the rest of Contractor HQ';
+      hq.onclick = fullPortal;
+      var acct = top.querySelector('#rs-account');
+      top.insertBefore(hq, acct || null);
     }
-    if (signedOut) { var o = document.querySelector('.soxp-out'); if (o) o.remove(); }
+    if (signedOut) {
+      ['.soxp-hq', '.hqtop .xp-info'].forEach(function (q) { var o = document.querySelector(q); if (o) o.remove(); });
+    }
   }
   var pend = 0;
   function schedule() { if (pend) return; pend = requestAnimationFrame(function () { pend = 0; paint(); }); }

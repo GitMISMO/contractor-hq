@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261126a">
+<meta name="so-version" content="20261126b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1091,8 +1091,9 @@ button,input,select,textarea,optgroup{font-family:inherit}
 /* The shared sign-in's name chip, and the logo it makes a link home, as on every MISMO tool (22 Nov 2026). */
 .hqtop #rs-account, .hqtop [data-rs-home]{pointer-events:auto}
 #rs-account{display:inline-flex;align-items:center}
-/* On a phone the Expenses app's header has its own Sign Out and no room for the chip. */
-@media (max-width:560px){html.soxp #rs-account{display:none!important}}
+/* On a phone the Expenses app's header shows the chip as just the initials (26 Nov 2026). */
+@media (max-width:560px){html.soxp #rs-account .rs-first,html.soxp #rs-account .rs-chev{display:none!important}
+  html.soxp #rs-account .rs-who{padding:3px!important;gap:0!important}}
 /* and leave room under it when something is scrolled into view */
 .psec,.psec-h,.row,.row-h,.gobtn,.ghost{scroll-margin-top:84px}
 .wrap{padding:22px 30px 90px;max-width:1500px;margin:0 auto}
@@ -2052,9 +2053,37 @@ button.xp-mrow:hover{background:var(--surface-3)}
 .xp-cats b{color:var(--ink);font-variant-numeric:tabular-nums}
 .pill.bad{background:rgba(179,55,44,.12);color:var(--bad)}
 @media(max-width:560px){.xp-head .tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}.xp-head{padding:12px}.xp-head .tile{padding:10px 11px}.xp-head .tile b{font-size:20px}.xp-head .tile small{display:none}}
-/* in the phone app the dock at the bottom already snaps and adds */
-html.soxp .xp-snap,html.soxp #xp-new{display:none}
-html.soxp .xp-top{grid-template-columns:1fr}
+/* ⚠ THE PHONE APP, LAID OUT LIKE TEAM HQ'S EXPENSES (Jonna, 26 Nov 2026: "clean it up,
+   make it look like the Team HQ version, the text is janky"). The Snap a Receipt zone
+   first, then plain white figures two to a row, and none of the explaining paragraphs:
+   the round i in the header holds the policy, and the dock does the rest. */
+html.soxp #xp-new{display:none}
+html.soxp .xp-top{display:block;margin:0 0 12px}
+html.soxp #view .psec[data-name="My Expenses"] > .psec-h{display:none}
+html.soxp .xp-snap{min-height:170px;margin:0 0 12px;padding:20px;border:2px dashed var(--sky);border-radius:12px;background:var(--sky-wash);gap:4px}
+html.soxp .xp-snap svg{width:38px;height:38px;stroke:var(--navy-mid)}
+html.soxp .xp-snap b{font-size:16px}
+html.soxp .xp-snap span{font-size:13px;color:var(--ink-2);max-width:300px}
+html.soxp .xp-snap-b{display:none}
+html.soxp .xp-head{background:none;border:0;box-shadow:none;padding:0;margin:0 0 12px;color:var(--ink)}
+html.soxp .xp-head .tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+html.soxp .xp-head .tile{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;box-shadow:0 1px 2px rgba(6,32,47,.05)}
+html.soxp .xp-head .tile:first-child,html.soxp .xp-head .tile:last-child{grid-column:span 2}
+html.soxp .xp-head .tile b{font-size:24px;color:var(--ink)}
+html.soxp .xp-head .tile span{font-size:12px;color:var(--ink-2);margin-top:3px}
+html.soxp .xp-head .tile small{display:none}
+html.soxp .xp-head .tile.warn b{color:var(--warn)}
+html.soxp .xp-mail{padding:10px 13px}
+html.soxp .xp-mail > p{display:none}
+html.soxp .xp-mail-h{flex-wrap:wrap;gap:2px 10px}
+html.soxp .xp-mail-h b{font-size:13.5px;white-space:nowrap}
+html.soxp .xp-mail-h span{margin-left:0;font-size:12.5px;color:var(--ink-2);white-space:normal;min-width:0;overflow-wrap:anywhere}
+html.soxp .xp-bar:not(:has(#xp-send)){display:none}
+html.soxp .xp-bar-l span{display:none}
+html.soxp .hqtop .xp-info{margin-left:8px;width:22px;height:22px;flex:0 0 22px;border-color:var(--sky);color:var(--sky);pointer-events:auto}
+html.soxp .hqtop .xp-info:hover{background:var(--sky);color:var(--navy-deep,#0d314c)}
+html.soxp .soxp-hq{pointer-events:auto;display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:0 10px;border:1px solid rgba(255,255,255,.4);border-radius:6px;background:transparent;color:#fff;font:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer}
+:root[data-theme="dark"] html.soxp .xp-head .tile,:root[data-theme="dark"].soxp .xp-head .tile{background:var(--surface)}
 .xp-co{font-size:13px;font-weight:700;color:var(--ink);margin:16px 0 6px}
 :root[data-theme="dark"] .xp-snap{background:var(--surface-2)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .xp-snap{background:var(--surface-2)}}

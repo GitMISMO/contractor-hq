@@ -6,6 +6,7 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-26
 
+- Masthead matches the other MISMO tools: the bar, the logo box, the divider and the name are Certification Management's to the pixel (68px bar; 62px on a phone), with the left menu and View As bar lined up under it, on Contractor HQ and the Service Order Review page. The old December hat is gone; the shared one replaces it (CN-053) [20261126d]
 - Expenses app on a phone: the top bar has room again, matched to Team HQ's: a smaller logo and tighter spacing, so Expenses, the policy i, Contractor HQ and your initials don't touch [20261126c]
 - Expenses app on a phone: laid out like Team HQ's. Snap a Receipt first, plain white figures two to a row, Expenses with the round i in the header, a Contractor HQ button there instead of the sentence at the foot, the name chip for signing out, and none of the explaining paragraphs [20261126b]
 - Expenses: a receipt is needed for anything $15 or more (was over $15), worded as Team HQ's expense app has it, on the policy card, the checks, the Missing a Receipt tile, the printed report and Help. Mileage still needs none [20261126a]

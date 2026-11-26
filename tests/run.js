@@ -1015,6 +1015,30 @@ function tracked(dir) {
     noErrors(s.errs); await s.close();
   });
 
+  /* CN-053 (Jonna, Nov 26, 2026): the masthead is Certification Management's, to the pixel. */
+  await check('The masthead matches Certification Management, with the menu lined up under it', async () => {
+    const html = read(path.join(DIR, 'index.html'));
+    expect(!/class="santa"|id="mismo-hat"|data-season|function season\(/.test(html + read(path.join(DIR, 'review.html'))),
+      'the retired December hat is still on a page (the shared /assets/holiday.js replaces it)');
+    const bad = [];
+    for (const [w, want] of [[1440, { bar: 68, x: 22, y: 13, h: 42, rule: 42, name: 16 }], [390, { bar: 62, x: 16, y: 14.5, h: 33, rule: 40, name: 13 }]]) {
+      const s = await open(opts({ who: 'admin', viewport: { width: w, height: 844 } }));
+      await wait(s, 1500);
+      const m = await s.page.evaluate(() => {
+        const r = q => { const e = document.querySelector(q); return e && e.getBoundingClientRect(); };
+        const bar = r('.hqtop'), plate = r('.hqtop .logoplate'), rule = r('.hqtop .mastrule'), rail = r('#rail');
+        const nm = getComputedStyle(document.querySelector('.hqtop .hqname'));
+        return { bar: bar.height, x: plate.left - bar.left, y: plate.top - bar.top, h: plate.height, rule: rule.height,
+          name: parseFloat(nm.fontSize), weight: nm.fontWeight, color: nm.color, railTop: rail ? rail.top : null };
+      });
+      for (const k of Object.keys(want)) if (Math.abs(m[k] - want[k]) > 0.6) bad.push(w + 'px: ' + k + ' is ' + m[k] + ', should be ' + want[k]);
+      if (m.weight !== '500' || m.color !== 'rgb(148, 200, 233)') bad.push(w + 'px: the name should be weight 500 in #94c8e9 (' + m.weight + ' ' + m.color + ')');
+      if (m.railTop !== null && Math.abs(m.railTop - m.bar) > 0.6) bad.push(w + 'px: the left menu starts at ' + m.railTop + ', not under the ' + m.bar + 'px bar');
+      await s.close();
+    }
+    expect(!bad.length, bad.join('\n'));
+  });
+
   await browser.close();
   const failed = results.filter(r => !r.ok);
   console.log('\n' + (results.length - failed.length) + ' passed, ' + failed.length + ' failed');

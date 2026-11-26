@@ -39,15 +39,17 @@ PAGE = r'''<!DOCTYPE html>
 html,body{margin:0;padding:0}
 body{background:var(--ground);color:var(--ink);font-family:var(--display);font-size:14px;line-height:1.55;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
 h1,h2,h3,h4{letter-spacing:-.012em;margin:0}
-.top{position:sticky;top:0;z-index:50;height:64px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 22px;box-shadow:0 1px 0 rgba(80,164,219,.28)}
-.logoplate{background:#fff;border-radius:7px;padding:8px 14px;display:flex;align-items:center;line-height:0;flex:0 0 auto}
+/* The masthead is Certification Management's, to the pixel (CN-053, Nov 26, 2026). */
+.top{position:sticky;top:0;z-index:50;height:68px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding:0 22px;box-shadow:0 1px 0 rgba(80,164,219,.28)}
+.logoplate{background:#fff;border-radius:5px;padding:9px 13px;display:flex;align-items:center;line-height:0;flex:0 0 auto;box-shadow:0 1px 0 rgba(80,164,219,.35)}
 .logoplate svg{height:24px;width:auto;display:block}
-.mastrule{display:block;width:2px;height:34px;margin-inline:20px;border-radius:1px;background:var(--sky);flex:0 0 auto}
-.hqname{font-size:15.5px;font-weight:700;color:var(--sky);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.mastrule{display:block;width:1px;height:42px;background:rgba(80,164,219,.4);flex:0 0 auto}
+.hqname{font-size:16px;font-weight:500;color:#94c8e9;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .top-r{margin-left:auto;display:flex;align-items:center;gap:12px}
 .themeb{font:inherit;font-size:12.5px;font-weight:600;color:#fff;background:transparent;border:1px solid rgba(255,255,255,.35);border-radius:4px;padding:6px 11px;cursor:pointer;white-space:nowrap;min-width:max-content}
 .themeb:hover{background:rgba(255,255,255,.1)}
-@media(max-width:640px){.mastrule{margin-inline:12px}.top{padding:0 14px}.themeb{display:none}}
+@media(max-width:640px){.themeb{display:none}}
+@media(max-width:560px){.top{height:62px;padding:0 16px;gap:11px}.logoplate{padding:7px 10px}.logoplate svg{height:19px}.mastrule{height:40px}.hqname{font-size:13px}}
 .wrap{padding:26px 30px 70px}
 @media(max-width:640px){.wrap{padding:18px 16px 60px}}
 .eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
@@ -70,7 +72,7 @@ h1,h2,h3,h4{letter-spacing:-.012em;margin:0}
 .sec h3{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0 0 5px}
 .sec p{margin:0;white-space:pre-wrap}
 .sec ul{margin:0;padding-left:20px}
-.decide{position:sticky;top:82px}
+.decide{position:sticky;top:86px}
 .decide h2{font-size:16px;margin:0 0 4px}
 .decide .say{color:var(--ink-2);margin:0 0 12px;font-size:13px}
 .btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:7px;border:1px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer;white-space:nowrap;min-width:max-content}

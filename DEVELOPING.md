@@ -174,6 +174,27 @@ Never copy the image into this repository or add another tab icon; `review.html`
 home-screen icons (`expenses.webmanifest`, `apple-touch-icon`, `xp-icon-*.png`) are separate and stay.
 The checks test this.
 
+## The Masthead
+
+The masthead is Certification Management's, to the pixel (Change Notice CN-053, Nov 26, 2026), so the
+MISMO logo sits in the same spot in every tool. In `index.html` (`.hqtop`, `.logoplate`, `.mastrule`,
+`.hqname`) and `review.html` (`.top`, from `tools/make_review.py`):
+
+- The navy bar is `--hq-h:68px`, the white logo box 42px tall (padding 9px 13px, 5px corners, a 1px sky
+  line under it), 13px from the top and 22px in from the left; 14px gaps; a 1px divider 42px tall in
+  `rgba(80,164,219,.4)`; the name at 16px, weight 500, `#94c8e9`.
+- At 560px and below, as the CMS does: the bar is 62px, the box 33px (padding 7px 10px, logo 19px),
+  16px in, the divider 40px, the name 13px.
+- Everything that sits under the bar uses `--hq-h` (the left menu, the View As bar, the sign-in screen);
+  `scroll-margin-top` is 88px and `review.html`'s decision box sticks at 86px. Change the bar's height
+  only through `--hq-h`.
+- The Expenses phone app (`expenses-app.js`, 480px and below) keeps its own tighter top bar, matched to
+  Team HQ's (no 14px gaps).
+- The December hat is the shared `/assets/holiday.js`, loaded by `/assets/session.js`. The old one
+  (`.santa`, `#mismo-hat`, `data-season`, `season()`) is gone; never add it back.
+
+The checks measure the bar, the logo box, the divider, the name and the left menu at 1440px and 390px.
+
 ## The Back Button
 
 The browser's Back and Forward buttons (Change Notice CN-033, Nov 25, 2026) come from the one shared

@@ -535,9 +535,18 @@ function tracked(dir) {
           chip: !!(document.querySelector('#rs-account .rs-who') || {}).offsetParent,
           foot: !!document.querySelector('.soxp-foot'),
           text: b.innerText,
-          wide: document.documentElement.scrollWidth > innerWidth
+          wide: document.documentElement.scrollWidth > innerWidth,
+          gaps: (function () {
+            const R = q => { const e = document.querySelector(q); return e && e.offsetParent ? e.getBoundingClientRect() : null; };
+            const i = R('.hqtop .xp-info'), hq = R('.hqtop .soxp-hq'), c = R('#rs-account .rs-who');
+            return i && hq && c ? [Math.round(hq.left - i.right), Math.round(c.left - hq.right), Math.round(innerWidth - c.right)] : null;
+          })()
         };
       });
+      // 20261126c: the top bar has room, as Team HQ's has since its 26 Nov fix.
+      if (read(path.join(DIR, 'expenses-app.js')).indexOf('the same icon crowding issue') >= 0)
+        expect(r.gaps && r.gaps[0] >= 8 && r.gaps[1] >= 6 && r.gaps[2] >= 10,
+          'the top bar is crowded at ' + w + 'px (i to button, button to initials, initials to edge): ' + JSON.stringify(r.gaps));
       expect(r.first === 'xp-snap', 'Snap a Receipt should come first, as in Team HQ (first was ' + r.first + ')');
       expect(r.headI && r.hq && r.chip, 'the header should carry the i, the Contractor HQ button and the name chip at ' + w + 'px');
       expect(!r.foot && !/Looking for your hours/.test(r.text), 'the sentence at the foot should be gone');

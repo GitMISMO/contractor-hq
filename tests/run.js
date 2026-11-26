@@ -498,7 +498,9 @@ function tracked(dir) {
       const p = s.page;
       await wait(s, 3500);
       if (!where) await nav(p, 'My Expenses');
-      const btn = await p.$('section[data-name="My Expenses"] .xp-info');
+      // From 20261126b the phone app carries the "i" in its header, as Team HQ's Expenses does.
+      const teamHqLook = read(path.join(DIR, 'index.html')).indexOf("THE PHONE APP, LAID OUT LIKE TEAM HQ") >= 0;
+      const btn = await p.$(where && teamHqLook ? '.hqtop .xp-info' : 'section[data-name="My Expenses"] .xp-info');
       expect(btn && await btn.isVisible(), 'no "i" beside My Expenses' + (where ? ' in the phone app' : ''));
       await btn.click(); await wait(s, 200);
       const txt = await p.textContent('#xp-policy');
@@ -511,6 +513,38 @@ function tracked(dir) {
         const page = await p.$eval('section[data-name="My Expenses"] .psec-b', e => e.innerText);
         expect(!/reimburses under the MBA/i.test(page), 'the policy statement should no longer sit at the foot of My Expenses');
       }
+      noErrors(s.errs); await s.close();
+    }
+  });
+
+  /* Jonna, 26 Nov 2026 (20261126b): the phone Expenses app laid out like Team HQ's. */
+  await check('The phone Expenses app is laid out like Team HQ\'s, and fits the phone', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf("THE PHONE APP, LAID OUT LIKE TEAM HQ") < 0) return;
+    for (const w of [390, 360]) {
+      const s = await open(opts({ who: 'casey', path: '?app=expenses', viewport: { width: w, height: 844 } }));
+      const p = s.page;
+      await wait(s, 3500);
+      await p.addStyleTag({ content: '#so-testcopy{display:none!important}' }); await wait(s, 200);
+      const r = await p.evaluate(() => {
+        const b = document.querySelector('section[data-name="My Expenses"] .psec-b');
+        const kids = [...b.children].filter(e => e.offsetParent !== null).map(e => e.id || e.className);
+        return {
+          first: kids.filter(k => !/soxp-tip/.test(k))[0],
+          headI: !!document.querySelector('.hqtop .xp-info'),
+          hq: !!document.querySelector('.hqtop .soxp-hq'),
+          chip: !!(document.querySelector('#rs-account .rs-who') || {}).offsetParent,
+          foot: !!document.querySelector('.soxp-foot'),
+          text: b.innerText,
+          wide: document.documentElement.scrollWidth > innerWidth
+        };
+      });
+      expect(r.first === 'xp-snap', 'Snap a Receipt should come first, as in Team HQ (first was ' + r.first + ')');
+      expect(r.headI && r.hq && r.chip, 'the header should carry the i, the Contractor HQ button and the name chip at ' + w + 'px');
+      expect(!r.foot && !/Looking for your hours/.test(r.text), 'the sentence at the foot should be gone');
+      expect(!/Submit everything at once|lands here with the details filled in/.test(r.text), 'the explaining paragraphs should be gone');
+      expect(!r.wide, 'the page should not scroll sideways at ' + w + 'px');
+      await p.click('.hqtop .soxp-hq'); await wait(s, 1500);
+      expect(!/[?&]app=expenses/.test(p.url()) && await p.$('#rail-nav'), 'Contractor HQ should open the full portal');
       noErrors(s.errs); await s.close();
     }
   });

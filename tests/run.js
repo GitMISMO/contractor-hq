@@ -507,6 +507,10 @@ function tracked(dir) {
         expect(txt.indexOf(want) >= 0, 'the policy card is missing ' + want + ': ' + txt);
       await p.keyboard.press('Escape'); await wait(s, 100);
       expect(!(await p.$('#xp-policy')), 'Escape should close the policy card');
+      if (read(path.join(DIR, 'index.html')).indexOf('The policy statement that sat at the foot') >= 0) {
+        const page = await p.$eval('section[data-name="My Expenses"] .psec-b', e => e.innerText);
+        expect(!/reimburses under the MBA/i.test(page), 'the policy statement should no longer sit at the foot of My Expenses');
+      }
       noErrors(s.errs); await s.close();
     }
   });
@@ -804,7 +808,13 @@ function tracked(dir) {
     const bad = (e, others) => P.check(e, others || []).some(x => x.lvl === 'bad');
     expect(P.allowed(ex('Taxi/Uber/Lyft', 22)) === 15, 'a $22 taxi with no receipt should count as $15');
     expect(bad(ex('Taxi/Uber/Lyft', 22)), 'a $22 taxi with no receipt should be flagged');
-    expect(!bad(ex('Taxi/Uber/Lyft', 15)), 'a $15 taxi needs no receipt');
+    // From 20261126a: $15 OR MORE needs a receipt, as Team HQ has it (before: over $15).
+    if (src.indexOf('function needsReceipt') >= 0) {
+      expect(bad(ex('Taxi/Uber/Lyft', 15)), 'a $15 taxi needs a receipt ($15 or more)');
+      expect(bad(ex('Meal Trvl - Snack', 15)), 'a $15 snack needs a receipt ($15 or more)');
+      expect(!bad(ex('Taxi/Uber/Lyft', 14.99)), 'a $14.99 taxi needs no receipt');
+      expect(P.check(ex('Parking', 20), []).some(x => /Charges of \$15\.00 or more need an original paid receipt/.test(x.m)), 'the wording should match Team HQ');
+    } else expect(!bad(ex('Taxi/Uber/Lyft', 15)), 'a $15 taxi needs no receipt');
     expect(P.allowed(ex('Taxi/Uber/Lyft', 22, true)) === 22, 'a $22 taxi with a receipt counts in full');
     expect(P.allowed(ex('Meal Trvl - Lunch', 30)) === 15 && bad(ex('Meal Trvl - Lunch', 30)), 'a $30 lunch with no receipt should be flagged and count as $15');
     expect(P.allowed(ex('Mileage', 48.5)) === 48.5 && !bad(ex('Mileage', 48.5)), 'mileage never needs a receipt');

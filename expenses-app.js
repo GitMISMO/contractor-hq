@@ -284,6 +284,8 @@
        logo and tighter spacing, so Expenses, the policy i, Contractor HQ and the initials
        each get room instead of touching. Same numbers as Team HQ's. */
     '@media (max-width:480px){' +
+      /* its own spacing, not the 14px gaps the masthead takes from Certification Management (CN-053) */
+      'html.soxp header.hqtop{gap:0!important}' +
       'html.soxp header.hqtop .logoplate{padding:4px 7px!important}' +
       'html.soxp header.hqtop .logoplate .wordmark{width:76px!important;height:auto!important}' +
       'html.soxp header.hqtop .mastrule{display:block!important;height:22px!important;margin:0 8px!important}' +

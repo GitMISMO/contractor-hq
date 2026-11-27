@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261126c">
+<meta name="so-version" content="20261126d">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -68,7 +68,7 @@
  --accent-soft:#e4f2fb;
  --display:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
  --ui:var(--display); --mono:var(--display);   /* one typeface everywhere */
- --hq-h:64px; --rail-w:240px; --rail-mini:62px;
+ --hq-h:68px; --rail-w:240px; --rail-mini:62px;
  color-scheme:light;
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
@@ -903,23 +903,23 @@ body.railmini .panel.wide{width:min(1320px, calc(100vw - var(--rail-mini,62px) -
 .hqcard .cfoot{display:flex;flex-direction:column;gap:10px;align-self:start;min-width:0}
 .hqcard .cfoot .next{margin-top:0}
 .hqtop{position:sticky;top:env(safe-area-inset-top,0px);z-index:97;height:var(--hq-h);
-  background:var(--navy);color:#fff;display:flex;align-items:center;gap:0;
+  background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;
   padding:0 22px;box-shadow:0 1px 0 rgba(80,164,219,.28);
   margin-left:calc(0px - var(--rail-w));width:calc(100% + var(--rail-w));
   transition:margin-left .2s cubic-bezier(.4,0,.2,1), width .2s cubic-bezier(.4,0,.2,1)}
 body.railmini .hqtop{margin-left:calc(0px - var(--rail-mini));width:calc(100% + var(--rail-mini))}
 @media (prefers-reduced-motion:reduce){ .hqtop{transition:none} }
-.hqtop .mastrule{display:block;width:2px;height:34px;flex:0 0 auto;margin-inline:20px;border-radius:1px;background:var(--sky)}
-.hqtop .hqname{font-family:var(--display);font-size:15.5px;font-weight:700;letter-spacing:-.005em;color:var(--sky);white-space:nowrap}
+/* The masthead is Certification Management's, to the pixel (CN-053, Nov 26, 2026): a 68px bar, the 42px logo box
+   13px from the top and 22px from the left, 14px gaps, a 1px divider and the name at 16px/500. */
+.hqtop .mastrule{display:block;width:1px;height:42px;flex:0 0 auto;margin:0;background:rgba(80,164,219,.4)}
+.hqtop .hqname{font-family:var(--display);font-size:16px;font-weight:500;letter-spacing:0;color:#94c8e9;white-space:nowrap}
 .hqtop-r{margin-left:auto;display:flex;align-items:center;gap:13px}
 .hqtop .eyebrow-m{font-family:var(--display);font-size:10.5px;letter-spacing:.11em;
   text-transform:uppercase;color:rgba(255,255,255,.62);font-weight:600;white-space:nowrap}
 @media(max-width:700px){.hqtop .eyebrow-m{display:none}}
-.logoplate{background:#fff;border-radius:7px;padding:8px 14px;display:flex;align-items:center;line-height:0;flex:0 0 auto;position:relative}
+.logoplate{background:#fff;border-radius:5px;padding:9px 13px;display:flex;align-items:center;line-height:0;flex:0 0 auto;position:relative;
+  box-shadow:0 1px 0 rgba(80,164,219,.35)}
 .logoplate .wordmark{height:24px;width:auto;display:block}
-.santa{position:absolute;display:none;pointer-events:none;left:-9px;top:-12px;width:31px;height:31px}
-html[data-season="december"] .logoplate .santa{display:block}
-html[data-season="december"] .hqtop{padding-top:12px}
 
 .hq.rail{position:fixed;left:0;top:calc(var(--hq-h) + env(safe-area-inset-top,0px));bottom:0;width:var(--rail-w);z-index:95;
   background:var(--navy);color:#fff;display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden auto;
@@ -1014,10 +1014,15 @@ body.railmini .hq .mast-right .theme-btn span{display:none}
 
 /* the page name is longer than Summit HQ's — let it shrink rather than push the bar wide */
 .hqtop .hqname{min-width:0;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:700px){
-  .hqtop{padding:0 14px}
-  .hqtop .mastrule{margin-inline:12px}
-  .hqtop .hqname{font-size:14px}
+/* On a phone, as Certification Management does at 560px and below: the bar is 62px, the logo box 33px,
+   14.5px from the top and 16px from the left, the divider 40px. */
+@media(max-width:560px){
+  :root{--hq-h:62px}
+  .hqtop{padding:0 16px;gap:11px}
+  .hqtop .logoplate{padding:7px 10px}
+  .hqtop .logoplate .wordmark{height:19px}
+  .hqtop .mastrule{height:40px}
+  .hqtop .hqname{font-size:13px}
 }
 
 /* The count beside a rail item — the same number the section header carries. */
@@ -1095,7 +1100,7 @@ button,input,select,textarea,optgroup{font-family:inherit}
 @media (max-width:560px){html.soxp #rs-account .rs-first,html.soxp #rs-account .rs-chev{display:none!important}
   html.soxp #rs-account .rs-who{padding:3px!important;gap:0!important}}
 /* and leave room under it when something is scrolled into view */
-.psec,.psec-h,.row,.row-h,.gobtn,.ghost{scroll-margin-top:84px}
+.psec,.psec-h,.row,.row-h,.gobtn,.ghost{scroll-margin-top:88px}
 .wrap{padding:22px 30px 90px;max-width:1500px;margin:0 auto}
 @media(max-width:640px){ .wrap{padding:16px 16px 70px} }
 
@@ -1358,7 +1363,7 @@ body.signedout .railscrim{display:none}
 body.signedout .hqtop{margin-left:0;width:100%}
 body.signedout main,body.signedout #view{padding:0}
 
-.signwrap{min-height:calc(100vh - var(--hq-h, 64px));display:flex;align-items:center;
+.signwrap{min-height:calc(100vh - var(--hq-h, 68px));display:flex;align-items:center;
   justify-content:center;padding:32px 20px 64px}
 .signcard{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);
   border-radius:12px;padding:38px 36px 30px;
@@ -1578,7 +1583,7 @@ td .meter{min-width:0}
    moment somebody is deep in a training session. */
 /* ⚠ It stuck at top:0 — which is exactly where the masthead already is, so on
    a phone it sat on top of the MISMO logo.  It sticks BELOW the masthead. */
-.vabar{position:sticky;top:calc(var(--hq-h,64px) + env(safe-area-inset-top,0px));z-index:40;
+.vabar{position:sticky;top:calc(var(--hq-h,68px) + env(safe-area-inset-top,0px));z-index:40;
   display:flex;flex-wrap:wrap;align-items:center;gap:10px;
   padding:10px 16px;margin:0 0 14px;border-radius:0 0 10px 10px;
   background:var(--navy);color:#fff;box-shadow:0 2px 10px rgba(6,32,47,.22)}
@@ -2117,15 +2122,6 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 -220 5 -410 14 -422 19 -29 12 -30 43 -3 70 19 19 33 20 288 20 277 0 331 -6
 355 -41 13 -18 24 -19 218 -17 l204 3 3 44 c4 60 -31 168 -70 215 -17 21 -52
 52 -77 67 l-45 29 -550 0 c-440 -1 -557 -3 -581 -14z"/></g></symbol>
-<symbol id="mismo-hat" viewBox="0 0 100 100">
-  <path d="M17,73 C9,44 20,17 42,9 C59,3 72,10 80,22 C85,30 86,38 81,41
-           C76,44 70,40 65,32 C60,46 57,60 57,73 Z" fill="#c0392f"/>
-  <path d="M17,73 C9,44 20,17 42,9 C48,7 53,6 58,7 C41,19 30,45 30,73 Z"
-        fill="#0f314c" opacity=".17"/>
-  <rect x="10" y="65" width="56" height="20" rx="10" fill="#ffffff"/>
-  <rect x="10" y="75" width="56" height="10" rx="5" fill="#0f314c" opacity=".07"/>
-  <circle cx="86" cy="45" r="11.5" fill="#ffffff"/>
-</symbol>
 <symbol id="ico-search" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7.2" cy="7.2" r="4.6"/><path d="m11 11 3 3"/></g></symbol>
 <symbol id="ico-moon" viewBox="0 0 16 16"><path d="M13.6 9.5A6 6 0 0 1 6.5 2.4a6 6 0 1 0 7.1 7.1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
 <symbol id="ico-sun" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.4v1.6M8 13v1.6M1.4 8h1.6M13 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></g></symbol>
@@ -2136,7 +2132,7 @@ c57 -33 76 -84 76 -200 0 -116 -19 -167 -76 -200 -32 -19 -52 -20 -294 -20
 <symbol id="ico-menu" viewBox="0 0 16 16"><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h12"/><path d="M2 8h12"/><path d="M2 12h12"/></g></symbol>
 </defs></svg>
 <header class="hqtop">
-  <span class="logoplate"><svg class="wordmark" role="img" aria-label="MISMO" viewBox="0 0 708 108"><use href="#mismo-logo"/></svg><svg class="santa" viewBox="0 0 100 100" aria-hidden="true"><use href="#mismo-hat"/></svg></span>
+  <span class="logoplate"><svg class="wordmark" role="img" aria-label="MISMO" viewBox="0 0 708 108"><use href="#mismo-logo"/></svg></span>
   <span class="mastrule"></span>
   <span class="hqname">Contractor HQ</span>
   <span class="hqtop-r">
@@ -15859,7 +15855,6 @@ start();
   try{var saved=localStorage.getItem("mismo.portal.theme");if(saved)document.documentElement.setAttribute("data-theme",saved);}catch(e){}
   paint();
 })();
-(function season(){ if(new Date().getMonth()===11) document.documentElement.setAttribute("data-season","december"); })();
 })();
 </script>
 <!-- Test Copy banner: shown only when the page is opened from releases/<version>/. -->
@@ -15876,12 +15871,12 @@ start();
       'When it looks right, publish it from GitHub (Actions \u203a Publish a Version).';
     b.innerHTML = 'Test Copy<span class="so-tc-v"> ' + v + '</span><span class="so-tc-s"> \u00b7 saves are real</span>';
     var st = document.createElement('style');
-    st.textContent = '#so-testcopy{flex:0 0 auto;margin-left:14px;background:#a2701a;color:#fff;' +
+    st.textContent = '#so-testcopy{flex:0 0 auto;margin-left:0;background:#a2701a;color:#fff;' +
       'font:600 12px/1.2 "IBM Plex Sans",sans-serif;padding:5px 9px;border-radius:4px;white-space:nowrap;' +
       'overflow:hidden;text-overflow:ellipsis}' +
       '#so-testcopy.so-tc-float{position:fixed;left:12px;top:12px;z-index:9999;margin:0}' +
       '@media(max-width:1100px){#so-testcopy .so-tc-v{display:none}}' +
-      '@media(max-width:700px){#so-testcopy{margin-left:10px}#so-testcopy .so-tc-s{display:none}}';
+      '@media(max-width:700px){#so-testcopy .so-tc-s{display:none}}';
     document.head.appendChild(st);
     var name = document.querySelector('.hqtop .hqname');
     if (name) name.insertAdjacentElement('afterend', b);

@@ -540,9 +540,21 @@ function tracked(dir) {
             const R = q => { const e = document.querySelector(q); return e && e.offsetParent ? e.getBoundingClientRect() : null; };
             const i = R('.hqtop .xp-info'), hq = R('.hqtop .soxp-hq'), c = R('#rs-account .rs-who');
             return i && hq && c ? [Math.round(hq.left - i.right), Math.round(c.left - hq.right), Math.round(innerWidth - c.right)] : null;
+          })(),
+          sizes: (function () {
+            const H = q => { const e = document.querySelector(q); return e && e.offsetParent ? Math.round(e.getBoundingClientRect().height) : 0; };
+            return { bar: H('.hqtop'), plate: H('.hqtop .logoplate'), i: H('.hqtop .xp-info'), hq: H('.hqtop .soxp-hq'), chip: H('#rs-account .rs-who') };
           })()
         };
       });
+      // 20261127a: the top bar is MyMISMO's size (58px, a 33px logo box, 40px buttons 6px apart, 14px from the edge).
+      if (read(path.join(DIR, 'expenses-app.js')).indexOf("MyMISMO's, to the pixel") >= 0) {
+        const z = r.sizes;
+        expect(z.bar === 58 && z.plate === 33 && z.i === 40 && z.hq === 40 && z.chip === 40,
+          'the top bar should be MyMISMO\'s size at ' + w + 'px: ' + JSON.stringify(z));
+        expect(r.gaps && r.gaps[0] >= 6 && r.gaps[1] >= 6 && r.gaps[2] >= 14,
+          'the top bar is crowded at ' + w + 'px (i to button, button to initials, initials to edge): ' + JSON.stringify(r.gaps));
+      } else
       // 20261126c: the top bar has room, as Team HQ's has since its 26 Nov fix.
       if (read(path.join(DIR, 'expenses-app.js')).indexOf('the same icon crowding issue') >= 0)
         expect(r.gaps && r.gaps[0] >= 8 && r.gaps[1] >= 6 && r.gaps[2] >= 10,
@@ -597,6 +609,72 @@ function tracked(dir) {
     await p.click('#h-save'); await wait(s, 1200);
     expect(/Ran the summit session/.test(JSON.stringify((store.S[key] || {}).drafts || {})), 'the hours logged on a phone were not saved');
     noErrors(s.errs); await s.close();
+  });
+
+  /* Jonna, 27 Nov 2026 (20261127a): "the left nav is a little not mobile friendly". */
+  await check('On a phone the menu is a tab bar at the foot, and the full menu slides in', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('function mobileNav') < 0) return;
+    for (const w of [390, 360]) {
+      const s = await open(opts({ who: 'casey', viewport: { width: w, height: 800 } }));
+      const p = s.page;
+      await wait(s, 3000);
+      const r = await p.evaluate(() => {
+        const rail = document.querySelector('.hq.rail').getBoundingClientRect();
+        const bar = document.getElementById('mnav'), bs = bar ? [...bar.querySelectorAll('button')] : [];
+        const main = document.querySelector('main.wrap').getBoundingClientRect();
+        return { railOff: rail.right <= 0, n: bs.length, labels: bs.map(b => b.textContent.trim()),
+          small: bs.filter(b => b.getBoundingClientRect().height < 48).length,
+          barBottom: bar && Math.round(innerHeight - bar.getBoundingClientRect().bottom),
+          mainLeft: Math.round(main.left), wide: document.documentElement.scrollWidth > innerWidth };
+      });
+      expect(r.railOff, 'the strip of icons should be gone on a phone at ' + w + 'px');
+      expect(r.n >= 2 && r.n <= 5 && /Menu/.test(r.labels[r.n - 1]), 'the tab bar should have up to four pages and Menu: ' + JSON.stringify(r.labels));
+      expect(r.labels.some(l => /^Hours/.test(l)), 'Hours should be a tab: ' + JSON.stringify(r.labels));
+      expect(!r.small && r.barBottom === 0, 'the tabs should be at the foot and easy to tap');
+      expect(r.mainLeft < 24 && !r.wide, 'the page should have the whole width at ' + w + 'px (left ' + r.mainLeft + ')');
+      await p.click('#mnav button:has-text("Hours")'); await wait(s, 400);
+      expect(await p.evaluate(() => /My Hours/.test(document.querySelector('.psec.current').getAttribute('data-name')) &&
+        document.querySelector('#mnav button[aria-current]').textContent.indexOf('Hours') >= 0), 'the Hours tab should open My Hours and show as chosen');
+      await p.click('#mnav .mnav-menu'); await wait(s, 400);
+      const open1 = await p.evaluate(() => { const r = document.querySelector('.hq.rail').getBoundingClientRect(); return r.left >= 0 && r.right > 200; });
+      expect(open1, 'Menu should slide the full menu in');
+      expect(await p.evaluate(() => [...document.querySelectorAll('#rail-nav button')].some(b => /Sign Out/.test(b.textContent) && b.offsetParent)), 'the full menu should include Sign Out');
+      await p.click('#rail-scrim', { position: { x: w - 10, y: 400 } }); await wait(s, 400);
+      expect(await p.evaluate(() => document.body.classList.contains('railmini')), 'tapping beside the menu should close it');
+      await p.click('[data-hrow]'); await wait(s, 500);
+      expect(await p.evaluate(() => { const b = document.getElementById('mnav'); return !b || getComputedStyle(b).display === 'none'; }), 'the tab bar should step aside while hours are being entered');
+      noErrors(s.errs); await s.close();
+    }
+    // The full menu on a computer is unchanged.
+    const d = await open(opts({ who: 'casey' }));
+    await wait(d, 3000);
+    expect(await d.page.evaluate(() => getComputedStyle(document.getElementById('mnav') || document.body).display === 'none' || !document.getElementById('mnav')), 'the tab bar should not show on a computer');
+    noErrors(d.errs); await d.close();
+  });
+
+  /* Jonna, 27 Nov 2026: hours (and expenses) as a place they can bookmark. */
+  await check('My Hours and My Expenses can be bookmarked', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('A PAGE YOU CAN BOOKMARK') < 0) return;
+    const s = await open(opts({ who: 'casey' }));
+    const p = s.page;
+    await wait(s, 3000); await nav(p, 'My Hours'); await wait(s, 300);
+    expect(/#hours$/.test(p.url()) && /^My Hours/.test(await p.title()), 'the address should follow the page (' + p.url() + ', ' + await p.title() + ')');
+    expect(await p.$('#rail-nav button[data-page="hours"]') && await p.$('#rail-nav button[data-page="expenses"]'), 'the menu buttons need fixed names for the sign-in chip');
+    await nav(p, 'My Expenses');
+    expect(/#expenses$/.test(p.url()), 'the address should follow to My Expenses (' + p.url() + ')');
+    await s.close();
+    for (const [hash, want] of [['#hours', 'My Hours'], ['#open=hours', 'My Hours'], ['#expenses', 'My Expenses']]) {
+      const b = await open(opts({ who: 'casey', path: hash }));
+      await wait(b, 3500);
+      const cur = await b.page.evaluate(() => (document.querySelector('.psec.current') || {}).getAttribute && document.querySelector('.psec.current').getAttribute('data-name'));
+      expect(cur === want, 'a bookmark to ' + hash + ' should open ' + want + ' (opened ' + cur + ')');
+      noErrors(b.errs); await b.close();
+    }
+    // On a phone, a bookmark to Expenses opens the Expenses app, as My Expenses always does there.
+    const m = await open(opts({ who: 'casey', path: '#expenses', viewport: { width: 390, height: 844 } }));
+    await wait(m, 3500);
+    expect(/[?&]app=expenses/.test(m.page.url()), 'on a phone #expenses should open the Expenses app (' + m.page.url() + ')');
+    await m.close();
   });
 
   await check('Help shows the version, and the Test Copy says what it is', async () => {

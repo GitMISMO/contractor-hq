@@ -4,6 +4,10 @@ One line per change people would notice, newest first. Add a line with every new
 version name in brackets once versions began). Before October 2026 many changes were uploaded
 without descriptions; the portal has been in use since early October 2026.
 
+## 2026-11-27
+
+- My Hours on a phone, for logging time at a summit: the earlier weeks fold to two lines (Show All for the rest) so the week you are in is near the top; the hours box brings up the number pad and is full width; boxes use 16px type so the phone does not zoom in; health, editor and close buttons are thumb-sized with their words showing; Keep This Time stays at the foot of the screen however long the notes; Save and Submit are full-width [20261127a]
+
 ## 2026-11-26
 
 - Masthead matches the other MISMO tools: the bar, the logo box, the divider and the name are Certification Management's to the pixel (68px bar; 62px on a phone), with the left menu and View As bar lined up under it, on Contractor HQ and the Service Order Review page. The old December hat is gone; the shared one replaces it (CN-053) [20261126d]

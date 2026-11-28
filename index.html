@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261126d">
+<meta name="so-version" content="20261127a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1919,6 +1919,49 @@ td .notefmt.fineprint{margin-top:6px}
   .owedrow .gobtn{margin-left:0;width:100%;order:4}
 }
 .owed .fineprint{margin-top:11px}
+.owedall{display:none}
+
+/* =========================================================================
+ * LOGGING TIME ON A PHONE (Jonna, 27 Nov 2026: "super mobile friendly", for
+ * logging hours at a summit). Everything a thumb touches is at least 40px,
+ * boxes use 16px type so the phone does not zoom in on them, the hours box
+ * brings up the number pad, the earlier weeks fold to two lines so the week
+ * you are in is near the top, and Keep This Time stays at the foot of the
+ * screen however long the notes get.
+ * ======================================================================= */
+@media (max-width:640px){
+  input, select, textarea, [contenteditable="true"]{font-size:16px!important}
+  .owedrow{flex-wrap:nowrap;gap:8px;padding:8px 0}
+  .owedrow .owed-w{white-space:normal;min-width:0;flex:1 1 auto;line-height:1.3}
+  .owedrow .owed-s, .owedrow .pill.warn{display:none}
+  .owedrow .gobtn{width:auto;margin-left:auto;order:0;min-height:40px;padding:0 12px;flex:0 0 auto}
+  .owed:not(.all) .owedmore{display:none}
+  .owed:not(.all) .owedall{display:inline-block;margin-top:8px;min-height:36px}
+  .owed .fineprint{display:none}
+  section[data-name="My Hours"] .lede{margin-bottom:10px}
+  .hrow{min-height:56px}
+  section[data-name="My Hours"] .ackbar{flex-direction:column;align-items:stretch;gap:10px}
+  section[data-name="My Hours"] .ackbar .gobtn{width:100%;min-height:48px;font-size:15px}
+  .panel{width:100vw!important}
+  .panel-h{padding:10px 14px}
+  .panel-x{width:40px;height:40px;font-size:20px}
+  .panel-b{padding:14px 14px 0}
+  .phnum{height:52px;font-size:22px!important;font-weight:600;width:100%}
+  .fields .f.narrow{max-width:none;grid-column:1/-1}
+  #ph-covtog{min-height:40px}
+  .hpick{gap:8px;width:100%}
+  .hbtn{flex:1 1 0;justify-content:center;min-height:44px;padding:8px 6px}
+  .hbtn .hd{width:16px;height:16px}
+  .hbtn .hw{display:inline!important}
+  .rtebar{gap:4px;padding:4px 6px;flex-wrap:wrap}
+  .rtebar button{width:40px;height:40px}
+  .rtebar button svg{width:19px;height:19px}
+  .panel .rowacts.hrs{position:sticky;bottom:0;z-index:3;margin:16px -14px 0;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));
+    background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -6px 18px rgba(6,32,47,.08)}
+  .panel .rowacts.hrs .gobtn{min-height:46px;flex:1 1 auto}
+  .panel .rowacts.hrs #ph-keep{flex:1 1 100%;order:-1;font-size:15px}
+  .panel .rowacts.hrs .unsaved{flex:1 1 100%;order:-2}
+}
 
 /* =========================================================================
  * ONE BUTTON SYSTEM, and nothing pill-shaped
@@ -4545,6 +4588,13 @@ window.H = (function () {
     m.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     setTimeout(function () { m.querySelector('#xp-policy-x').focus(); }, 20);
   }
+  /* On a phone the earlier weeks fold to two; this shows the rest (27 Nov 2026). */
+  if (typeof document !== 'undefined') document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('.owedall');
+    if (!b) return;
+    var box = b.closest('.owed'); if (box) box.classList.add('all');
+    b.remove();
+  });
   /* Guarded: the checks also run these rules outside a browser, where there is no page. */
   if (typeof document !== 'undefined') document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest && e.target.closest('.xp-info');
@@ -7180,10 +7230,10 @@ function loadCompanyCore(slug) {
         '<span>' + (owed.length === 1 ? 'An earlier week is still open'
                                       : owed.length + ' earlier weeks are still open') +
         '</span></div>' +
-        '<div class="owedrows">' + owed.map(function (e) {
+        '<div class="owedrows">' + owed.map(function (e, ix) {
           var w = H.weekIn(mine, e);
           var sentBack = w && w.state === 'returned';
-          return '<div class="owedrow">' +
+          return '<div class="owedrow' + (ix >= 2 ? ' owedmore' : '') + '">' +
             '<span class="owed-w">Week Ending ' + esc(e) + '</span>' +
             '<span class="owed-s">' + esc(H.weekSpan(fy, e)) + '</span>' +
             (sentBack ? '<span class="pill bad">Sent Back to You</span>'
@@ -7191,6 +7241,7 @@ function loadCompanyCore(slug) {
             '<button class="gobtn ghost" type="button" data-wkfix="' + esc(e) + '">' +
             (sentBack ? 'Correct This Week' : 'Log This Week') + '</button></div>';
         }).join('') + '</div>' +
+        (owed.length > 2 ? '<button class="lnk owedall" type="button">Show all ' + owed.length + ' weeks</button>' : '') +
         '<p class="fineprint">Opening one brings it up here with whatever you had already saved in ' +
         'it. <b>Hours go on the invoice for the month the week falls in</b>, not the month you ' +
         'type them \u2014 so a week logged late still lands in the right place.</p></div>';
@@ -7211,7 +7262,7 @@ function loadCompanyCore(slug) {
 
     var head = owedBand +
       '<p class="lede">The week you are in. <b>Choose a service order to enter it</b> — ' +
-      'it opens on the right, with room for the notes.</p>' +
+      'it opens with room for the notes.</p>' +
       /* ⚠ The week is the HEADLINE, not an eyebrow label.
          It was a 10px uppercase caption above the hours total, so the one fact
          that decides which invoice the time lands on was the smallest thing on
@@ -7559,7 +7610,7 @@ function loadCompanyCore(slug) {
 
     return '<div class="fields">' +
       '<div class="f narrow"><label for="ph-num">Hours This Week</label>' +
-      '<input id="ph-num" class="phnum" type="number" min="0" step="0.25" value="' +
+      '<input id="ph-num" class="phnum" type="number" inputmode="decimal" min="0" step="0.25" value="' +
       (logged ? hrs(logged) : '') + '"' + (sent ? ' disabled' : '') + '></div>' +
       '<div class="f"><label id="ph-hl">Health</label>' +
       '<div class="hpick" role="radiogroup" aria-labelledby="ph-hl">' +
@@ -7575,7 +7626,7 @@ function loadCompanyCore(slug) {
       }).join('') + '</div></div>' +
       (strad
         ? '<div class="f narrow"><label for="ph-split">Of Those, in ' + esc(strad.firstMonth) +
-          '</label><input id="ph-split" class="phsplit" type="number" min="0" step="0.25" value="' +
+          '</label><input id="ph-split" class="phsplit" type="number" inputmode="decimal" min="0" step="0.25" value="' +
           (r.inFirstMonth != null ? hrs(r.inFirstMonth) : '') + '"' + (sent ? ' disabled' : '') +
           '></div>' : '') +
       '</div>' +
@@ -7644,7 +7695,7 @@ function loadCompanyCore(slug) {
         return '<option value="' + esc(m.name) + '"' +
           (f && f.person === m.name ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('') +
       '</select>' +
-      '<input class="covhrs" type="number" min="0" step="0.25" data-hid="' + esc(oid) + '" ' +
+      '<input class="covhrs" type="number" inputmode="decimal" min="0" step="0.25" data-hid="' + esc(oid) + '" ' +
       'placeholder="Hours" value="' + (f && f.hours ? hrs(f.hours) : '') + '">' +
       '<button class="lnk covdel" type="button" aria-label="Remove this line">Remove</button>' +
       '</div>';

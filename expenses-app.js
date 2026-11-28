@@ -279,31 +279,39 @@
     'html.soxp .hqtop .eyebrow-m{display:none}',
     'html.soxp .hqname{flex:0 0 auto;white-space:nowrap}',
     '@media (max-width:560px){html.soxp .logoplate{padding:6px 10px!important}html.soxp .logoplate .wordmark{height:18px!important;width:auto!important}html.soxp .hqtop .who{display:none!important}}',
-    /* ⚠ The top bar on a phone, matched to Team HQ's Expenses app (Jonna, 26 Nov 2026:
-       "the same icon crowding issue I just fixed on the Team HQ expense app"). A smaller
-       logo and tighter spacing, so Expenses, the policy i, Contractor HQ and the initials
-       each get room instead of touching. Same numbers as Team HQ's. */
-    '@media (max-width:480px){' +
-      /* its own spacing, not the 14px gaps the masthead takes from Certification Management (CN-053) */
-      'html.soxp header.hqtop{gap:0!important}' +
-      'html.soxp header.hqtop .logoplate{padding:4px 7px!important}' +
-      'html.soxp header.hqtop .logoplate .wordmark{width:76px!important;height:auto!important}' +
-      'html.soxp header.hqtop .mastrule{display:block!important;height:22px!important;margin:0 8px!important}' +
+    /* ⚠ The top bar on a phone is MyMISMO's, to the pixel (Jonna, 27 Nov 2026: "make sure
+       the expense app masthead matches the size of MyMISMO's mobile app masthead"). A 58px
+       navy bar (plus the iPhone's notch area), 14px in from each side; the white MISMO
+       logo box 7px by 10px around a 19px logo; and 40px square buttons with 6px between
+       them on the right: the policy i, Contractor HQ, and the initials. Like MyMISMO, the
+       app's name gives way to the logo below 440px wide; the home-screen icon carries it. */
+    '@media (max-width:560px){' +
+      'html.soxp header.hqtop{height:calc(58px + env(safe-area-inset-top,0px))!important;box-sizing:border-box!important;gap:10px!important;padding:env(safe-area-inset-top,0px) 14px 0!important}' +
+      'html.soxp header.hqtop .logoplate{padding:7px 10px!important;border-radius:5px!important}' +
+      'html.soxp header.hqtop .logoplate .wordmark{height:19px!important;width:auto!important}' +
+      'html.soxp header.hqtop .mastrule{display:block!important;height:auto!important;align-self:stretch!important;margin:9px 0!important;background:rgba(116,191,235,.4)!important}' +
       'html.soxp header.hqtop .hqname{margin-left:0!important}' +
-      'html.soxp header.hqtop .hqname::after{font-size:15.5px!important}' +
-      'html.soxp header.hqtop .xp-info{width:21px!important;height:21px!important;flex:0 0 21px!important;margin-left:7px!important;font-size:11px!important}' +
-      'html.soxp header.hqtop .hqtop-r{gap:8px!important;padding-left:8px;margin-left:auto!important}' +
-      'html.soxp header.hqtop .soxp-hq{min-height:30px!important;padding:0 9px!important;font-size:12.5px!important}' +
+      'html.soxp header.hqtop .hqname::after{font-size:15px!important;font-weight:500!important}' +
+      'html.soxp header.hqtop .xp-info{order:5;margin-left:auto!important;margin-right:-4px!important;width:40px!important;height:40px!important;flex:0 0 40px!important;' +
+        'border-radius:4px!important;border:1px solid rgba(255,255,255,.2)!important;background:rgba(255,255,255,.1)!important;color:#fff!important;' +
+        'font-size:0!important;display:grid!important;place-items:center!important;padding:0!important}' +
+      'html.soxp header.hqtop .xp-info::before{content:"i";display:grid;place-items:center;width:20px;height:20px;box-sizing:border-box;border:1.7px solid currentColor;border-radius:50%;' +
+        'font:700 12px/1 Georgia,"Times New Roman",serif}' +
+      'html.soxp header.hqtop .xp-info:hover{background:rgba(255,255,255,.18)!important}' +
+      'html.soxp header.hqtop .hqtop-r{order:6;gap:6px!important;padding-left:0!important;margin-left:0!important}' +
+      'html.soxp header.hqtop .soxp-hq{min-height:40px!important;height:40px!important;padding:0 9px!important;border-radius:4px!important;' +
+        'border:1px solid rgba(255,255,255,.2)!important;background:rgba(255,255,255,.1)!important;font-size:13.5px!important;font-weight:600!important}' +
       'html.soxp header.hqtop #rs-account{flex:0 0 auto}' +
-      /* Contractor HQ is a longer name than Team HQ, so the initials are a touch smaller
-         and the spacing a touch tighter to make the same room. */
-      'html.soxp header.hqtop #rs-account .rs-who{width:30px!important;height:30px!important;padding:0!important;justify-content:center!important;min-height:0!important}' +
-      'html.soxp header.hqtop #rs-account .rs-av{width:26px!important;height:26px!important;font-size:11px!important}' +
-      'html.soxp header.hqtop .hqtop-r{gap:7px!important;padding-left:11px}' +
-      'html.soxp header.hqtop .mastrule{margin:0 7px!important}' +
-      'html.soxp header.hqtop .soxp-hq{padding:0 8px!important}' +
+      /* the Test Copy tag sits just under the bar, so the bar itself is the live one */
+      'html.soxp header.hqtop #so-testcopy{position:fixed!important;top:calc(60px + env(safe-area-inset-top,0px));left:14px;z-index:98;font-size:10.5px!important;padding:2px 7px!important}' +
     '}',
-    /* the narrowest phones: the button keeps its place as HQ */
+    '@media (max-width:440px){html.soxp header.hqtop .mastrule,html.soxp header.hqtop .hqname{display:none!important}}',
+    /* the smallest phones (MyMISMO's own numbers below 360) */
+    '@media (max-width:359px){html.soxp header.hqtop{gap:6px!important;padding-left:10px!important;padding-right:10px!important}' +
+      'html.soxp header.hqtop .logoplate{padding:6px 8px!important}html.soxp header.hqtop .logoplate .wordmark{height:15px!important}' +
+      'html.soxp header.hqtop .hqtop-r{gap:4px!important}html.soxp header.hqtop .xp-info{width:36px!important;height:36px!important;flex-basis:36px!important}' +
+      'html.soxp header.hqtop .soxp-hq{min-height:36px!important;height:36px!important}' +
+      'html.soxp header.hqtop #rs-account .rs-who{width:36px!important;height:36px!important}}',
     '@media (max-width:384px){html.soxp header.hqtop .soxp-hq .l{display:none}}',
     'html.soxp .hqname{font-size:0!important;letter-spacing:0!important}',
     'html.soxp .hqname::after{content:"Expenses";font-size:16px;letter-spacing:normal;font-weight:600}',

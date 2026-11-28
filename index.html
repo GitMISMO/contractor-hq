@@ -6,7 +6,7 @@
      A new outside service is added HERE and in tests/run.js (SAFETY_LIST), or it is blocked. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://rgvdi67cg27o5kcmiytcqbqnrm0hmztx.lambda-url.us-east-1.on.aws https://cdn.jsdelivr.net https://tessdata.projectnaptha.com data: blob:; worker-src 'self' blob: https://cdn.jsdelivr.net; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <!-- Which saved version this is: set by tools/new-version.sh, checked by Publish a Version. -->
-<meta name="so-version" content="20261127a">
+<meta name="so-version" content="20261127b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="expenses.webmanifest">
 <meta name="theme-color" content="#0d314c">
@@ -1920,6 +1920,27 @@ td .notefmt.fineprint{margin-top:6px}
 }
 .owed .fineprint{margin-top:11px}
 .owedall{display:none}
+#mnav{display:none}
+/* the menu on a phone: full-width page, a tab bar at the foot, the full menu as a drawer (27 Nov 2026) */
+@media (max-width:640px){
+  :root{--rail-mini:0px}
+  body.railmini .hq.rail{transform:translateX(-105%);visibility:hidden}
+  .hq.rail{transition:transform .22s ease,visibility .22s}
+  body:not(.railmini) .hq.rail{width:min(300px,86vw);box-shadow:6px 0 28px rgba(6,32,47,.45)}
+  body.has-mnav main.wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  #mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:92;background:var(--navy,#0d314c);
+    border-top:1px solid rgba(116,191,235,.25);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(6,32,47,.18)}
+  #mnav[hidden], html.soxp #mnav, body:has(#panel.on) #mnav{display:none!important}
+  #mnav button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    min-height:56px;padding:6px 2px;border:0;border-radius:8px;background:none;color:rgba(255,255,255,.72);font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative}
+  #mnav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  #mnav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #mnav button[aria-current]{color:#fff;background:rgba(116,191,235,.16)}
+  #mnav button[aria-current] svg{stroke:var(--sky)}
+  #mnav button i{position:absolute;top:4px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+    background:var(--sky);color:var(--navy-deep,#0d314c);font-style:normal;font-size:10px;font-weight:700;line-height:17px;text-align:center}
+  #mnav button:focus-visible{outline:2px solid var(--sky);outline-offset:-2px}
+}
 
 /* =========================================================================
  * LOGGING TIME ON A PHONE (Jonna, 27 Nov 2026: "super mobile friendly", for
@@ -3581,6 +3602,34 @@ window.H = (function () {
      position would land her on a different page than the one she was reading
      every time she saved something. */
   var PAGE_KEY = 'page';
+  /* ⚠ A PAGE YOU CAN BOOKMARK (Jonna, 27 Nov 2026: "make the time a place they
+     can bookmark ... so it's not just Contractor HQ which is everything", and the
+     same for expenses). Every page has a short, fixed name: My Hours is "hours",
+     My Expenses "expenses", My Service Orders "service-orders". The address
+     follows the page on screen (contractor-hq/#hours), so a bookmark or a phone's
+     Add to Home Screen opens straight back to it, and the tab is titled with the
+     page so the bookmark is named after it. The sign-in chip's saved places use
+     Perry's #open=hours, which presses the menu button carrying data-page="hours";
+     both forms are read here too. My Expenses on a phone still turns into the
+     Expenses app (?app=expenses), which keeps its own address and icon. */
+  function pageSlug(name) {
+    return String(name || '').toLowerCase().replace(/^my\s+/, '').replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+  function addressedPage() {
+    var m = /^#(?:open=)?([a-z0-9-]{1,40})$/i.exec(location.hash || '');
+    return m ? m[1].toLowerCase() : '';
+  }
+  function appMode() { return /[?&]app=/.test(location.search || ''); }
+  function markAddress(sec) {
+    var name = sec.getAttribute('data-name') || '', slug = pageSlug(name);
+    if (!slug || appMode()) return;
+    try { document.title = name + ' \u00b7 Contractor HQ'; } catch (e) {}
+    if (location.hash === '#' + slug) return;
+    /* #open= is left for session.js to finish with; it tidies it to #<page> itself */
+    if (/^#open=/.test(location.hash || '') && addressedPage() === slug) return;
+    try { history.replaceState(null, '', location.pathname + location.search + '#' + slug); } catch (e) {}
+  }
   function rememberedPage() {
     try { return R.store.get(PAGE_KEY) || ''; } catch (e) { return ''; }
   }
@@ -3592,6 +3641,7 @@ window.H = (function () {
       s.classList.toggle('current', s === sec);
     });
     try { R.store.put(PAGE_KEY, sec.getAttribute('data-name') || ''); } catch (e) {}
+    markAddress(sec);
     var host = document.getElementById('rail-nav');
     if (host) {
       Array.prototype.forEach.call(host.children, function (x) {
@@ -3622,7 +3672,14 @@ window.H = (function () {
     var all = host.querySelectorAll('.psec');
     if (!all.length) return;
     if (host.querySelector('.psec.current')) return;
-    var want = rememberedPage(), pick = null;
+    var want = rememberedPage(), pick = null, asked = addressedPage();
+    /* a bookmarked page comes first: that is the place they asked to open */
+    if (asked) {
+      Array.prototype.forEach.call(all, function (s) {
+        if (!pick && pageSlug(s.getAttribute('data-name')) === asked) pick = s;
+      });
+      if (pick) { try { R.store.put(PAGE_KEY, pick.getAttribute('data-name') || ''); } catch (e) {} }
+    }
     Array.prototype.forEach.call(all, function (s) {
       if (!pick && want && s.getAttribute('data-name') === want) pick = s;
     });
@@ -3649,6 +3706,7 @@ window.H = (function () {
       });
     }
     (pick || all[0]).classList.add('current');
+    markAddress(pick || all[0]);
   }
   /* a row opens and shuts on a click on the row itself — no Edit, no Close */
   function wireRows(root) {
@@ -3785,7 +3843,7 @@ window.H = (function () {
        object and nothing else. */
     feeLabel: feeLabel, perReviewOrder: perReviewOrder, BUILD: BUILD,
     sect: sect, wireSections: wireSections, wireRows: wireRows,
-    showPage: showPage, pageOf: pageOf, revealIn: revealIn,
+    showPage: showPage, pageOf: pageOf, revealIn: revealIn, pageSlug: pageSlug,
     orderDoc: orderDoc, letterDoc: letterDoc, printBtn: printBtn, ORDER_OF: ORDER_OF
   };
 })();
@@ -4134,6 +4192,7 @@ window.H = (function () {
       var b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('data-hq', sec.id);
+      b.setAttribute('data-page', P.pageSlug ? P.pageSlug(name) : '');
       b.title = name;
       if (sec.classList.contains('current')) b.setAttribute('aria-current', 'page');
       b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + railIcon(name) + '</svg>' +
@@ -15892,6 +15951,63 @@ function start(){
   wireFind();
 }
 start();
+/* ⚠ THE MENU ON A PHONE (Jonna, 27 Nov 2026: "the left nav is a little not mobile
+   friendly, can you come up with something better"). Below 640px the strip of
+   icons down the left is gone, giving the page the whole width, and a tab bar
+   sits at the foot of the screen, where a thumb reaches: the main page of each
+   group in the menu (My Hours, My Expenses, My Service Orders for a contractor),
+   and Menu, which slides the full menu in from the left with every page, the
+   other MISMO tools, Help and Sign Out. The tabs press the menu's own buttons,
+   so they go exactly where the menu goes. */
+(function mobileNav(){
+  const PHONE=window.matchMedia('(max-width:640px)');
+  const nav=document.getElementById('rail-nav'); if(!nav) return;
+  if(PHONE.matches && !document.body.classList.contains('railmini')) set(true,false);
+  const bar=document.createElement('nav');
+  bar.id='mnav'; bar.setAttribute('aria-label','Pages');
+  document.body.appendChild(bar);
+  const MENU='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+  function short(t){ return String(t||'').replace(/^My /,''); }
+  function picks(){
+    const out=[]; let took=false;
+    [...nav.children].forEach(el=>{
+      if(el.classList.contains('railgroup')||el.classList.contains('railsep')){ took=false; return; }
+      if(el.tagName!=='BUTTON'||!el.hasAttribute('data-hq')||took) return;
+      if(/^Help$/.test((el.title||'').trim())) return;
+      out.push(el); took=true;
+    });
+    return out.slice(0,4);
+  }
+  function draw(){
+    const ps=picks();
+    /* ⚠ only touch the body's classes when they change: this runs whenever they do */
+    const cl=document.body.classList;
+    if(!ps.length||cl.contains('signedout')){ if(!bar.hidden) bar.hidden=true; if(cl.contains('has-mnav')) cl.remove('has-mnav'); return; }
+    if(bar.hidden) bar.hidden=false; if(!cl.contains('has-mnav')) cl.add('has-mnav');
+    const want=ps.map(b=>b.getAttribute('data-hq')+'|'+b.title+'|'+(b.querySelector('.railn')||{}).textContent+'|'+b.hasAttribute('aria-current')).join(',');
+    if(bar.dataset.sig===want) return;
+    bar.dataset.sig=want; bar.innerHTML='';
+    ps.forEach(src=>{
+      const b=document.createElement('button'); b.type='button';
+      const n=src.querySelector('.railn'), ic=src.querySelector('svg');
+      b.innerHTML=(ic?ic.outerHTML:'')+'<span>'+short(src.title).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'+
+        (n&&n.textContent&&n.textContent!=='0'?'<i>'+n.textContent+'</i>':'');
+      b.title=src.title;
+      if(src.getAttribute('data-page')) b.setAttribute('data-page',src.getAttribute('data-page'));
+      if(src.hasAttribute('aria-current')) b.setAttribute('aria-current','page');
+      b.addEventListener('click',()=>src.click());
+      bar.appendChild(b);
+    });
+    const m=document.createElement('button'); m.type='button'; m.className='mnav-menu';
+    m.innerHTML=MENU+'<span>Menu</span>'; m.title='Every page, Help and Sign Out';
+    m.setAttribute('aria-expanded','false');
+    m.addEventListener('click',()=>{ set(false,false); });
+    bar.appendChild(m);
+  }
+  new MutationObserver(draw).observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-current']});
+  new MutationObserver(draw).observe(document.body,{attributes:true,attributeFilter:['class']});
+  draw();
+})();
 (function theme(){
   var btn=document.getElementById("theme-btn"); if(!btn)return;
   function cur(){var t=document.documentElement.getAttribute("data-theme");if(t)return t;

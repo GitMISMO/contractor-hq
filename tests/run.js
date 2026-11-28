@@ -558,6 +558,47 @@ function tracked(dir) {
     }
   });
 
+  /* Jonna, 27 Nov 2026 (20261127a): logging time on a phone, at a summit. */
+  await check('Logging time works comfortably on a phone', async () => {
+    if (read(path.join(DIR, 'index.html')).indexOf('LOGGING TIME ON A PHONE') < 0) return;
+    const store = mkStore();
+    const key = 'so-northwind|hours/casey-c-fy2027.json';
+    const s = await open(opts({ who: 'casey', store, viewport: { width: 390, height: 844 } }));
+    const p = s.page;
+    await wait(s, 3000); await nav(p, 'My Hours'); await wait(s, 400);
+    const page = await p.evaluate(() => {
+      const rows = [...document.querySelectorAll('.owedrow')].filter(e => e.offsetParent);
+      return { wide: document.documentElement.scrollWidth > innerWidth, owedShown: rows.length,
+        owedAll: document.querySelectorAll('.owedrow').length, more: !!document.querySelector('.owedall'),
+        week: Math.round(document.querySelector('.wkband').getBoundingClientRect().top) };
+    });
+    expect(!page.wide, 'My Hours scrolls sideways on a phone');
+    if (page.owedAll > 2) {
+      expect(page.owedShown === 2 && page.more, 'the earlier weeks should fold to two with Show All: ' + JSON.stringify(page));
+      await p.click('.owedall'); await wait(s, 200);
+      expect((await p.$$eval('.owedrow', r => r.filter(e => e.offsetParent).length)) === page.owedAll, 'Show All should show every earlier week');
+    }
+    expect(page.week < 844, 'the week you are in should be on the first screen, at ' + page.week + 'px');
+    await p.click('[data-hrow]'); await wait(s, 500);
+    const pan = await p.evaluate(() => {
+      const n = document.getElementById('ph-num'), k = document.getElementById('ph-keep').getBoundingClientRect();
+      const small = [...document.querySelectorAll('#panel button, #panel input')].filter(e => e.offsetParent && e.id !== 'ph-covtog' && e.getBoundingClientRect().height < 40).map(e => e.id || e.className);
+      return { mode: n.getAttribute('inputmode'), font: parseFloat(getComputedStyle(n).fontSize),
+        edFont: parseFloat(getComputedStyle(document.getElementById('ph-note-ed')).fontSize),
+        keepOnScreen: k.top >= 0 && k.bottom <= innerHeight, small };
+    });
+    expect(pan.mode === 'decimal', 'the hours box should bring up the number pad');
+    expect(pan.font >= 16 && pan.edFont >= 16, 'boxes under 16px make the phone zoom in');
+    expect(pan.keepOnScreen, 'Keep This Time should stay on screen');
+    expect(!pan.small.length, 'buttons under 40px tall on a phone: ' + pan.small.join(', '));
+    await p.fill('#ph-num', '1.5');
+    await p.click('#ph-note-ed'); await p.keyboard.type('Ran the summit session');
+    await p.click('#ph-keep'); await wait(s, 400);
+    await p.click('#h-save'); await wait(s, 1200);
+    expect(/Ran the summit session/.test(JSON.stringify((store.S[key] || {}).drafts || {})), 'the hours logged on a phone were not saved');
+    noErrors(s.errs); await s.close();
+  });
+
   await check('Help shows the version, and the Test Copy says what it is', async () => {
     const s = await open(opts({ who: 'admin' }));
     await wait(s, 3500); await nav(s.page, 'Help');

@@ -6,6 +6,9 @@ without descriptions; the portal has been in use since early October 2026.
 
 ## 2026-11-27
 
+- Contractor HQ on a phone: the strip of icons down the left is gone, so pages use the whole width; a tab bar at the foot has Hours, Expenses, Service Orders and Menu, which slides in the full menu (every page, the other MISMO tools, Help, Sign Out). Computers are unchanged [20261127b]
+- Pages can be bookmarked: the address follows the page (contractor-hq/#hours, #expenses) and the tab is named after it, and the sign-in chip's #open=hours works too. #expenses on a phone opens the Expenses app [20261127b]
+- Expenses app on a phone: the top bar is MyMISMO's size (58px bar, the same logo box, 40px buttons) [20261127b]
 - My Hours on a phone, for logging time at a summit: the earlier weeks fold to two lines (Show All for the rest) so the week you are in is near the top; the hours box brings up the number pad and is full width; boxes use 16px type so the phone does not zoom in; health, editor and close buttons are thumb-sized with their words showing; Keep This Time stays at the foot of the screen however long the notes; Save and Submit are full-width [20261127a]
 
 ## 2026-11-26
